@@ -184,11 +184,6 @@ http://ash.jp/java/stream.htm
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-
-
-
-
-
         // //////////////////////////////////////
         // Retrofit + Gson
         // //////////////////////////////////////
