@@ -40,8 +40,9 @@ import static java.sql.DriverManager.println;
 public class LoginActivity extends AppCompatActivity {
 
 
-    EditText mEmailEditText,mPasswordEditText,mUserNameEditText;
-
+    EditText mEmailEditText;
+    EditText mPasswordEditText;
+    EditText mUserNameEditText;
 
     User user;
     String username;
@@ -64,7 +65,7 @@ public class LoginActivity extends AppCompatActivity {
 
 
     //http://hmkcode.com/android-send-json-data-to-server/
-    public static String POST( User user){
+    public static String Post(){
 
        // mProgress.show();
 
@@ -82,16 +83,16 @@ http://ash.jp/java/stream.htm
         InputStream inputStream = null;
         String result = "";
 
-       /* final String json =
+        final String json =
                 "{\"user\":{" +
                         "\"username\":\"あいうえお5\"," +
-                        "\"email\":\"test05@test.com\"," +
+                        "\"email\":\"test06@test.com\"," +
                         "\"password\":\"testtest\"," +
                         "\"password_confirmation\":\"testtest\"" +
                         "}" +
                 "}";
-*/
 
+/*
         String json = "";
 
         // 3. build jsonObject
@@ -102,7 +103,7 @@ http://ash.jp/java/stream.htm
 
         // 4. convert JSONObject to JSON to String
         json = jsonObject.toString();
-
+*/
         try {
 
             URL url = new URL(urlString); //URLを生成
@@ -137,7 +138,7 @@ http://ash.jp/java/stream.htm
 
             // JSON to Java
             Gson gson = new Gson();
-            user = gson.fromJson(jsonData.toString(),
+            User user = gson.fromJson(jsonData.toString(),
                     User.class);
 
             System.out.println("id = " + user.getUid());
@@ -199,11 +200,6 @@ http://ash.jp/java/stream.htm
         mTochakuService = retrofit.create(TochakuService.class);
 
 
-
-
-
-
-
         //UIの準備
         setTitle("ログイン");
 
@@ -239,7 +235,7 @@ http://ash.jp/java/stream.htm
                    // createAccount(email, password);
                 } else {
                     // 非同期処理を開始する
-                    new createAccount().execute("https://rails5api-wkojiro1.c9users.io/users.json");
+                    new createAccount().execute();
                     //createAccount();
                     Log.d("ユーザー登録","ddd");
                     // エラーを表示する
@@ -301,15 +297,17 @@ http://ash.jp/java/stream.htm
 //    private void createAccount(String email, String password) {
     private class createAccount extends AsyncTask<String, Void, Void> {
         @Override
-        protected String doInBackground(String... strings) {
+        protected Void doInBackground(String... params) {
 
-
+            /*
             user = new User();
-            user.setUsername(username);
-            user.setEmail(email);
-            user.setPassword(password);
-
-            return POST(user);
+            user.setUsername(mUserNameEditText.getText().toString());
+            user.setEmail(mEmailEditText.getText().toString());
+            user.setPassword(mPasswordEditText.getText().toString());
+*/
+            //return POST();
+            Post();
+            return null;
 
         }
 
