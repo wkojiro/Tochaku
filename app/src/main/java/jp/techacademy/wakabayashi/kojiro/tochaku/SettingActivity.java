@@ -299,7 +299,7 @@ public class SettingActivity extends AppCompatActivity {
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(Void result) {
-           
+
 
             //response();
 
@@ -315,9 +315,10 @@ public class SettingActivity extends AppCompatActivity {
     private void deleteUserdata() {
         // Preferenceを削除する
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        //SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        sp.edit().clear();
+        sp.edit().clear().commit();
         Log.d("Delete","done");
+        email = null;
+        username = null;
 
 
     }

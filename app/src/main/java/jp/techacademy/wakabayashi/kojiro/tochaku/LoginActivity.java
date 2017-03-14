@@ -19,23 +19,40 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.stream.JsonWriter;
+
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+
 import static java.sql.DriverManager.println;
+
+
+/*
+
+ネットワークに繋がらなかった時
+エラー時の対応（エラーメッセージのAPI)
+
+ */
+
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -48,6 +65,12 @@ public class LoginActivity extends AppCompatActivity {
     String username;
     String email;
     String password;
+    String access_token;
+
+    static String res_token;
+    static String res_id;
+    static String res_username;
+    static String res_email;
 
     String mPasswordConfirmationEditText;
     String mTokenText;
@@ -63,9 +86,94 @@ public class LoginActivity extends AppCompatActivity {
     // アカウント作成時にフラグを立てる。今の所使い道は不明
     boolean mIsCreateAccount = false;
 
+    public static String Login(User user){
+        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+        BufferedReader reader = null;
+        StringBuilder jsonData = new StringBuilder();
+        String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_in.json";
+
+        InputStream inputStream = null;
+        String result = "";
+
+        String email = user.getEmail();
+        String password = user.getPassword();
+
+        final String json =
+                "{\"user\":{" +
+                        "\"email\":\"" + email + "\"," +
+                        "\"password\":\""+ password + "\"" +
+                        "}" +
+                 "}";
+
+        try {
+            URL url = new URL(urlString); //URLを生成
+            con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
+            con.setRequestMethod("POST");
+            con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
+            con.setRequestProperty("Accept-Language", "jp");
+            con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
+            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+
+            // //////////////////////////////////////
+            // リスエストの送信
+            // //////////////////////////////////////
+            OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+            // con.getResponseCode();
+
+            PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
+            ps.print(json);// JsonをPOSTする
+            ps.close();
+
+            //多分ここからResponseのための器をつくっている。
+            //戻り値の指定をしないと動かないのかな？
+
+            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+            String line = reader.readLine();
+            while (line != null) {
+                jsonData.append(line);
+                line = reader.readLine();
+            }
+            System.out.println(jsonData.toString());
+
+            // JSON to Java
+            Gson gson = new Gson();
+            user = gson.fromJson(jsonData.toString(),User.class);
+
+            if(user != null) {
+                res_id = user.getUid();
+                res_token = user.getToken();
+                res_username = user.getUserName();
+                res_email = user.getEmail();
+
+                System.out.println("id = " + user.getUid());
+                System.out.println("username = " + user.getUserName());
+                System.out.println("token = " + user.getToken());
+
+            }
+
+            con.disconnect();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Log.d("会員登録", "Postしてみました");
+        // mProgress.dismiss();
+
+        result = "OK";
+
+        return result;
+    }
+
 
     //http://hmkcode.com/android-send-json-data-to-server/
-    public static String Post(){
+    public static String Post(User user){
 
        // mProgress.show();
 
@@ -83,27 +191,21 @@ http://ash.jp/java/stream.htm
         InputStream inputStream = null;
         String result = "";
 
+
+        String username = user.getUserName();
+        String email = user.getEmail();
+        String password = user.getPassword();
+       // String password2 = user.getPassword();
+
         final String json =
                 "{\"user\":{" +
-                        "\"username\":\"あいうえお5\"," +
-                        "\"email\":\"test06@test.com\"," +
-                        "\"password\":\"testtest\"," +
-                        "\"password_confirmation\":\"testtest\"" +
+                        "\"username\":\"" + username + "\"," +
+                        "\"email\":\"" + email + "\"," +
+                        "\"password\":\"" + password + "\"," +
+                        "\"password_confirmation\":\""+ password + "\"" +
                         "}" +
                 "}";
 
-/*
-        String json = "";
-
-        // 3. build jsonObject
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.accumulate("username", user.getUserName());
-        jsonObject.accumulate("email", user.getEmail());
-        jsonObject.accumulate("password", user.getPassword());
-
-        // 4. convert JSONObject to JSON to String
-        json = jsonObject.toString();
-*/
         try {
 
             URL url = new URL(urlString); //URLを生成
@@ -118,12 +220,14 @@ http://ash.jp/java/stream.htm
             // リスエストの送信
             // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+           // con.getResponseCode();
 
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
             ps.close();
 
-            //多分ここからResponseのための器をつくっている。（でもうまくいっていない。［］系の話の様子）
+            //多分ここからResponseのための器をつくっている。
             //戻り値の指定をしないと動かないのかな？
 
             reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
@@ -132,31 +236,23 @@ http://ash.jp/java/stream.htm
                 jsonData.append(line);
                 line = reader.readLine();
             }
-
             System.out.println(jsonData.toString());
-
 
             // JSON to Java
             Gson gson = new Gson();
-            User user = gson.fromJson(jsonData.toString(),
-                    User.class);
+            user = gson.fromJson(jsonData.toString(),User.class);
 
-            System.out.println("id = " + user.getUid());
-            System.out.println("username = " + user.getUserName());
-            System.out.println("token = " + user.getToken());
+            if(user != null) {
+               res_id = user.getUid();
+               res_token = user.getToken();
+               res_username = user.getUserName();
+               res_email = user.getEmail();
 
+                System.out.println("id = " + user.getUid());
+                System.out.println("username = " + user.getUserName());
+                System.out.println("token = " + user.getToken());
 
-/*
-
-            JSONObject jsonObject = new JSONObject(buffer);
-            JSONArray jsonArray  = jsonObject.getJSONArray(buffer);
-           // JSONArray jsonArray = new JSONArray(object);
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-                jsonObject = jsonArray.getJSONObject(i);
-                Log.d("HTTP REQ", jsonObject.getString("email"));
             }
-*/
 
             con.disconnect();
         } catch (MalformedURLException e) {
@@ -174,8 +270,6 @@ http://ash.jp/java/stream.htm
 
         result = "OK";
 
-
-        // return result
         return result;
     }
 
@@ -187,13 +281,13 @@ http://ash.jp/java/stream.htm
         // //////////////////////////////////////
         // Retrofit + Gson
         // //////////////////////////////////////
-
+/*
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(TochakuService.END_POINT)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         mTochakuService = retrofit.create(TochakuService.class);
-
+*/
 
         //UIの準備
         setTitle("ログイン");
@@ -227,10 +321,11 @@ http://ash.jp/java/stream.htm
                     mIsCreateAccount = true;
                     Log.d("ユーザー登録","ddd");
 
+                    new createAccount().execute();
                    // createAccount(email, password);
                 } else {
                     // 非同期処理を開始する
-                    new createAccount().execute();
+                    //new createAccount().execute();
                     //createAccount();
                     Log.d("ユーザー登録","ddd");
                     // エラーを表示する
@@ -248,10 +343,8 @@ http://ash.jp/java/stream.htm
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
 
-                String email = mEmailEditText.getText().toString();
-                String password = mPasswordEditText.getText().toString();
-
-
+                email = mEmailEditText.getText().toString();
+                password = mPasswordEditText.getText().toString();
 
                 if (email.length() != 0 && password.length() >= 6) {
                     // フラグを落としておく
@@ -259,7 +352,9 @@ http://ash.jp/java/stream.htm
 
                     Log.d("ログイン","aaa");
 
-                    login(email, password);
+                    new loginAccount().execute();
+
+                  //  login(email, password);
                 } else {
 
                     Log.d("ログイン","aaa");
@@ -294,14 +389,14 @@ http://ash.jp/java/stream.htm
         @Override
         protected Void doInBackground(String... params) {
 
-            /*
             user = new User();
-            user.setUsername(mUserNameEditText.getText().toString());
-            user.setEmail(mEmailEditText.getText().toString());
-            user.setPassword(mPasswordEditText.getText().toString());
-*/
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPassword(password);
+
             //return POST();
-            Post();
+            Post(user);
+            Log.d("user",String.valueOf(user));
             return null;
 
         }
@@ -310,8 +405,47 @@ http://ash.jp/java/stream.htm
         @Override
         protected void onPostExecute(Void result) {
             Log.d("Post","done");
+
+            //response();
+
+
+            saveUserdata(user);
+            View v = findViewById(android.R.id.content);
+            Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
+
+            finish();
         }
     }
+
+
+    private class loginAccount extends AsyncTask<String, Void, Void>{
+        @Override
+        protected Void doInBackground(String... params){
+            user = new User();
+            user.setEmail(email);
+            user.setPassword(password);
+
+            Login(user);
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            Log.d("Post","done");
+
+            //response();
+
+
+            saveUserdata(user);
+            View v = findViewById(android.R.id.content);
+            Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
+
+            finish();
+
+        }
+    }
+
 
 
     private void login(String email, String password) {
@@ -324,12 +458,18 @@ http://ash.jp/java/stream.htm
 
     }
 
-    private void saveUserdata(String email, String token) {
+    private void saveUserdata(User user) {
+
+       // Integer loginkey = 1;
         // Preferenceに保存する
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = sp.edit();
-        editor.putString(Const.EmailKEY, email);
-        editor.putString(Const.TokenKey, token);
+        editor.putString(Const.UidKEY , res_id);
+        editor.putString(Const.UnameKEY, res_username);
+        editor.putString(Const.EmailKEY, res_email);
+        editor.putString(Const.TokenKey, res_token);
+        //editor.putInt(Const.LoginKey, 1);
+
         editor.commit();
     }
 

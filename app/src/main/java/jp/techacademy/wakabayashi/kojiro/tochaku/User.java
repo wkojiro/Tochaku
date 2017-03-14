@@ -14,6 +14,11 @@ public class User {
     private String created_at;
     private String updated_at;
 
+    public User(){
+
+    }
+
+
     public String getUid(){
         return id;
     }

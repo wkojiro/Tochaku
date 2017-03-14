@@ -5,6 +5,9 @@ package jp.techacademy.wakabayashi.kojiro.tochaku;
  */
 
 public class Const {
+    public static final String UidKEY = "id";
+    public static final String UnameKEY = "username"; //Preferenceにusernameを保存する時のキー
     public static final String EmailKEY = "email"; // PreferenceにEmailを保存する時のキー
-    public static final String TokenKey = "token"; // PreferenceにTokenを保存する時のキー
+    public static final String TokenKey = "access_token"; // PreferenceにTokenを保存する時のキー
+    public static final String LoginKey = "loginkey";
 }
