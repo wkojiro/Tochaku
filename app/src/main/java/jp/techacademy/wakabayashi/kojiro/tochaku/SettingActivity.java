@@ -446,14 +446,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             //response();
 
             //SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            sp.registerOnSharedPreferenceChangeListener(SettingActivity.this);
-            sp.edit().clear().commit();
-
-            Log.d("Delete","done");
-            apiemail = null;
-            apiusername = null;
-            apitoken = null;
+            deleteUserdata();
 
 
             View v = findViewById(android.R.id.content);
@@ -466,7 +459,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         // Preferenceを削除する
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        sp.registerOnSharedPreferenceChangeListener(this);
+
         sp.edit().clear().commit();
         Log.d("Delete","done");
         apiemail = null;
