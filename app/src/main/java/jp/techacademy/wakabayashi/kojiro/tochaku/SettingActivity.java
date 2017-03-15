@@ -28,6 +28,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -98,7 +102,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
 
 
-
+    SharedPreferences sp;
 
 
     //Responseを受け取るためのパラメータ
@@ -111,7 +115,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     static Float res_destlongitude;
     static String res_desturl;
 
-    public static String GetdestList(){
+
+    public String GetdestList(){
 
 
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
@@ -136,7 +141,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             // //////////////////////////////////////
             // リスエストの送信
             // //////////////////////////////////////
-            InputStream is = con.getInputStream(); //この接続に書き込みを行う出力ストリームを返します
+            InputStream is = con.getInputStream(); //GETだから
             con.connect();
 
             final int status = con.getResponseCode();
@@ -149,16 +154,30 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
 
-
-
-
                 while (line != null) {
                     jsonData.append(line);
                     line = reader.readLine();
                 }
 
                 System.out.println(jsonData.toString());
-                System.out.println(line);
+
+                JSONArray jsonarray = new JSONArray(jsonData.toString());
+                for (int i = 0; i < jsonarray.length(); i++) {
+                    JSONObject jsonobject = jsonarray.getJSONObject(i);
+                    res_destname = jsonobject.getString("name");
+                    res_destemail = jsonobject.getString("email");
+                    res_destaddress = jsonobject.getString("address");
+                    res_desturl = jsonobject.getString("url");
+                    Log.d("res_destname",String.valueOf(res_destname));
+                }
+
+                Realm realm = Realm.getDefaultInstance();
+                realm.beginTransaction();
+                realm.createOrUpdateAllFromJson(Dest.class,jsonarray);
+                realm.commitTransaction();
+
+                realm.close();
+
 
             }
             //ここからRealm 及び　Arrayにいれる
@@ -219,7 +238,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         setContentView(R.layout.activity_setting);
 
 
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         sp.registerOnSharedPreferenceChangeListener(this);
 
        // Log.d("user name",String.valueOf(sp));
@@ -365,12 +384,10 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mRealm.commitTransaction();
     }
 
-
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         // handle the preference change here
-        Log.d("変更","あった");
-
+        Log.d("変更","SettingActivityに書かれているLogです。");
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -427,7 +444,18 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         @Override
         protected void onPostExecute(Void result) {
             //response();
-            deleteUserdata();
+
+            //SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            sp.registerOnSharedPreferenceChangeListener(SettingActivity.this);
+            sp.edit().clear().commit();
+
+            Log.d("Delete","done");
+            apiemail = null;
+            apiusername = null;
+            apitoken = null;
+
+
             View v = findViewById(android.R.id.content);
             Snackbar.make(v, "ログアウトしました", Snackbar.LENGTH_LONG).show();
             finish();
@@ -436,7 +464,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     }
     private void deleteUserdata() {
         // Preferenceを削除する
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        sp.registerOnSharedPreferenceChangeListener(this);
         sp.edit().clear().commit();
         Log.d("Delete","done");
         apiemail = null;

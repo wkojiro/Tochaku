@@ -94,8 +94,6 @@ public class DestActivity extends AppCompatActivity {
 
         try {
 
-
-
             URL url = new URL(urlString); //URLを生成
             con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
             con.setRequestMethod("POST");

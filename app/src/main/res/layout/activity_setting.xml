@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#cccccc"
     tools:context="jp.techacademy.wakabayashi.kojiro.tochaku.SettingActivity"
     tools:layout_editor_absoluteY="81dp"
     tools:layout_editor_absoluteX="0dp">
@@ -45,6 +46,7 @@
         android:id="@+id/ProfileButton"
         android:layout_width="150dp"
         android:layout_height="48dp"
+        android:background="@color/colorPrimary"
         android:text="@string/Profile"
         android:layout_marginLeft="8dp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -60,9 +62,10 @@
         android:id="@+id/LogoutButton"
         android:layout_width="154dp"
         android:layout_height="48dp"
+        android:background="@color/colorPrimary"
         android:text="@string/Logout"
         app:layout_constraintTop_toTopOf="@+id/ProfileButton"
-        android:layout_marginRight="16dp"
+        android:layout_marginRight="8dp"
         app:layout_constraintRight_toRightOf="parent"
         android:layout_marginEnd="8dp"
         app:layout_constraintVertical_bias="0.0"
@@ -70,7 +73,8 @@
         app:layout_constraintBottom_toTopOf="@+id/listView" />
 
     <ListView
-        android:layout_width="364dp"
+        android:background="#ffffff"
+        android:layout_width="0dp"
         android:layout_height="319dp"
         android:layout_marginLeft="8dp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -81,10 +85,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:id="@+id/listView"
-        tools:layout_editor_absoluteY="184dp"
         app:layout_constraintHorizontal_bias="0.0" />
-
-
 
 
 </android.support.constraint.ConstraintLayout>

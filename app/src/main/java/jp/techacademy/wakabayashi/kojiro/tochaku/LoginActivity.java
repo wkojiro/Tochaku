@@ -54,7 +54,7 @@ import static java.sql.DriverManager.println;
  */
 
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
 
     EditText mEmailEditText;
@@ -147,7 +147,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 System.out.println("id = " + user.getUid());
                 System.out.println("username = " + user.getUserName());
-                System.out.println("token = " + user.getToken());
+                System.out.println("access_token = " + user.getToken());
 
             }
 
@@ -270,6 +270,14 @@ http://ash.jp/java/stream.htm
         result = "OK";
 
         return result;
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        // handle the preference change here
+        Log.d("変更情報","ログインしました");
+
+
     }
 
     @Override
@@ -446,7 +454,7 @@ http://ash.jp/java/stream.htm
     }
 
 
-
+/*
     private void login(String email, String password) {
         // プログレスダイアログを表示する
         mProgress.show();
@@ -456,12 +464,13 @@ http://ash.jp/java/stream.htm
         mProgress.dismiss();
 
     }
-
+*/
     private void saveUserdata(User user) {
 
        // Integer loginkey = 1;
         // Preferenceに保存する
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        sp.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences.Editor editor = sp.edit();
         editor.putString(Const.UidKEY , res_id);
         editor.putString(Const.UnameKEY, res_username);

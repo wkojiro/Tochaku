@@ -80,32 +80,34 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 Log.d("user name",String.valueOf(username));
 
 
-                if (username == "" && email == "" && token == ""){
+                if (username.equals("") && email.equals("") && token.equals("")){
                     Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
                     startActivity(intent);
                 } else {
                     //スタートボタンとして利用する予定
                     Log.d("user name",String.valueOf(username));
                 }
-
-
             }
         });
     }
 
-    @Override
-    protected void onStart(){
-        super.onStart();
-        mUsername.setText(String.valueOf(username));
-
-
-    }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         // handle the preference change here
-        Log.d("変更","あった");
+        Log.d("変更","MainActivityに書かれているLogです。");
+
+        //this とはおそらくthis activityのこと ここはActivityの中だからthisでもいける。
+        // getApplicationContext();　とも書ける。
+        Log.d("user name",String.valueOf(sp));
+        username = sp.getString(Const.UnameKEY, "");
+        email = sp.getString(Const.EmailKEY, "");
+        token = sp.getString(Const.TokenKey, "");
+        Log.d("user name",String.valueOf(username));
+
+        mUsername = (TextView) findViewById(R.id.username);
         mUsername.setText(String.valueOf(username));
+
 
     }
     @Override
