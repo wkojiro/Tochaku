@@ -2,7 +2,8 @@ package jp.techacademy.wakabayashi.kojiro.tochaku;
 
 /*
 
-
+１　このActivityがonCreateされた時にAPIを叩いて、登録されているDestの一覧をGetする。
+２　一覧表示する
 
  */
 
@@ -20,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -41,7 +43,14 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class SettingActivity extends AppCompatActivity {
+
+//Realm関連
+import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmResults;
+import io.realm.Sort;
+
+public class SettingActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     //パーツの定義
     TextView mUserNameText;
@@ -49,51 +58,71 @@ public class SettingActivity extends AppCompatActivity {
     TextView mDestCountText;
     Button mProfileButton;
     Button mLogoutButton;
+
+
+    private Realm mRealm;
+    private RealmResults<Dest> mDestRealmResults;
+    private RealmChangeListener mRealmListener = new RealmChangeListener() {
+        @Override
+        public void onChange(Object element) {
+            reloadListView();
+        }
+    };
+
+    //リストView
     private ListView mListView;
-
-
-    //パーツから受け取るためのパラメータ
-
-
-
     //GetのResponseを受けるパラメータ
-    static Dest dest;
-    private ArrayList<Dest> mDestArrayList;
-    private DestsListAdapter mDestAdapter;
+    private DestAdapter mDestAdapter;
 
     ProgressDialog mProgress;
 
     //API通信のための会員Email及びToken(Preferenseから取得）
-    static String username;
-    static String email;
-    static String token;
+    static String apiusername;
+    static String apiemail;
+    static String apitoken;
+
+    String preusername;
+    String preemail;
+    String pretoken;
+
+
+    Dest dest;
+    int railsid;
+    String name;
+    String email;
+    String address;
+    float latitude;
+    float longitude;
+    String url;
+
+
+
+
+
+
 
     //Responseを受け取るためのパラメータ
-
-    static String res_destid;
+    static Dest res_dest;
+    static Integer res_destid;
     static String res_destname;
     static String res_destemail;
     static String res_destaddress;
     static Float res_destlatitude;
     static Float res_destlongitude;
-
-
+    static String res_desturl;
 
     public static String GetdestList(){
+
+
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
         BufferedReader reader = null;
         StringBuilder jsonData = new StringBuilder();
-        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ token +"";
+        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ apiemail +"&token="+ apitoken +"";
 
         InputStream inputStream = null;
         String result = "";
 
-
-
-
         try {
-
-
 
             URL url = new URL(urlString); //URLを生成
             con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
@@ -119,52 +148,43 @@ public class SettingActivity extends AppCompatActivity {
 
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
+
+
+
+
                 while (line != null) {
                     jsonData.append(line);
                     line = reader.readLine();
                 }
 
                 System.out.println(jsonData.toString());
+                System.out.println(line);
 
             }
+            //ここからRealm 及び　Arrayにいれる
             //con.getResponseCode();
 
 
-/*
-            PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
-            ps.print(json);// JsonをPOSTする
-            ps.close();
-*/
-
-
-            //多分ここからResponseのための器をつくっている。
-            //戻り値の指定をしないと動かないのかな？
-/*
-            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
-            String line = reader.readLine();
-            while (line != null) {
-                jsonData.append(line);
-                line = reader.readLine();
-            }
-
-            System.out.println(jsonData.toString());
-
-*/
             // JSON to Java
+            /*
             Gson gson = new Gson();
-            dest = gson.fromJson(jsonData.toString(),Dest.class);
+            res_dest = gson.fromJson(jsonData.toString(),Dest.class);
 
-            if(dest != null) {
-                /*
-                res_id = user.getUid();
-                res_token = user.getToken();
-                res_username = user.getUserName();
-                res_email = user.getEmail();
-*/
-                System.out.println("id = " + dest.getDestId());
+            if(res_dest != null) {
+
+                res_destid = res_dest.getRailsId();
+                res_destname = res_dest.getDestName();
+                res_destemail = res_dest.getDestEmail();
+                res_destaddress = res_dest.getDestAddress();
+                res_destlatitude = res_dest.getDestLatitude();
+                res_destlongitude = res_dest.getDestLongitude();
+                res_desturl = res_dest.getDestUrl();
 
 
-            }
+                System.out.println("id = " + res_dest.getRailsId());
+
+            }*/
+
 
             con.disconnect();
         } catch (MalformedURLException e) {
@@ -191,24 +211,36 @@ public class SettingActivity extends AppCompatActivity {
 
     }
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
-        setTitle("設定画面");
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        if(sp != null) {
-            username = sp.getString(Const.UnameKEY, "");
-            email = sp.getString(Const.EmailKEY, "");
-            token = sp.getString(Const.TokenKey, "");
-            Log.d("user name", String.valueOf(username));
-            Log.d("Email", String.valueOf(username));
-            Log.d("トークン", String.valueOf(token));
+        sp.registerOnSharedPreferenceChangeListener(this);
+
+       // Log.d("user name",String.valueOf(sp));
+        apiusername = sp.getString(Const.UnameKEY, "");
+        apiemail = sp.getString(Const.EmailKEY, "");
+        apitoken = sp.getString(Const.TokenKey, "");
+
 
             new getDestinations().execute();
-        }
+
+
+
+        setTitle("設定画面");
+        mUserNameText = (TextView) findViewById(R.id.userNameText);
+
+        mUserNameText.setText(apiusername);
+        mEmailText = (TextView) findViewById(R.id.EmailText);
+        mEmailText.setText(apiemail);
+        mDestCountText = (TextView) findViewById(R.id.DestsText);
+
+
 
 
         Button profileButton = (Button) findViewById(R.id.ProfileButton);
@@ -238,6 +270,107 @@ public class SettingActivity extends AppCompatActivity {
 
             }
         });
+
+
+        // Realmの設定
+        mRealm = Realm.getDefaultInstance();
+        mDestRealmResults = mRealm.where(Dest.class).findAll();
+        mRealm.addChangeListener(mRealmListener);
+
+        // ListViewの設定
+        mDestAdapter = new DestAdapter(SettingActivity.this);
+        mListView = (ListView) findViewById(R.id.listView);
+
+        // ListViewをタップしたときの処理
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // ①入力・編集する画面に遷移させる
+                // ②トグルかチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
+
+            }
+        });
+
+        // ListViewを長押ししたときの処理
+        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                // タスクを削除する
+
+                return true;
+            }
+        });
+
+        if (mDestRealmResults.size() == 0) {
+            // アプリ起動時にタスクの数が0であった場合は表示テスト用のタスクを作成する
+            addDestForTest();
+        }
+
+        reloadListView();
+
+
+    }
+    private void reloadListView() {
+
+        // 後でTaskクラスに変更する
+
+        ArrayList<Dest> destArrayList = new ArrayList<>();
+         /*
+        destArrayList.add("aaa");
+        destArrayList.add("bbb");
+        destArrayList.add("ccc");
+        */
+        for (int i = 0; i < mDestRealmResults.size(); i++){
+            if(!mDestRealmResults.get(i).isValid()) continue;
+
+            Dest dest = new Dest();
+
+            dest.setId(mDestRealmResults.get(i).getId());
+            dest.setRailsId(mDestRealmResults.get(i).getRailsId());
+            dest.setDestName(mDestRealmResults.get(i).getDestName());
+            dest.setDestEmail(mDestRealmResults.get(i).getDestEmail());
+            dest.setDestAddress(mDestRealmResults.get(i).getDestAddress());
+            dest.setDestLatitude(mDestRealmResults.get(i).getDestLatitude());
+            dest.setDestLongitude(mDestRealmResults.get(i).getDestLongitude());
+            dest.setDestUrl(mDestRealmResults.get(i).getDestUrl());
+
+            destArrayList.add(dest);
+        }
+
+        mDestAdapter.setDestArrayList(destArrayList);
+        mListView.setAdapter(mDestAdapter);
+        mDestAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        mRealm.close();
+    }
+
+    private void addDestForTest() {
+        Dest dest = new Dest();
+        dest.setDestName("東京タワー");
+        dest.setDestEmail("wkojiro22@gmail.com");
+        dest.setDestAddress("東京都港区芝公園４丁目２−８");
+        dest.setDestUrl("http://www.yahoo.co,jp");
+        dest.setDestLatitude(35.658581f);
+        dest.setDestLongitude(139.745433f);
+        dest.setRailsId(0);
+        dest.setId(0);
+        mRealm.beginTransaction();
+        mRealm.copyToRealmOrUpdate(dest);
+        mRealm.commitTransaction();
+    }
+
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        // handle the preference change here
+        Log.d("変更","あった");
+
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -287,28 +420,17 @@ public class SettingActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-
-
-
             return null;
-
-
         }
 
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(Void result) {
-
-
             //response();
-
-
             deleteUserdata();
             View v = findViewById(android.R.id.content);
             Snackbar.make(v, "ログアウトしました", Snackbar.LENGTH_LONG).show();
-
-            //finish();
+            finish();
         }
 
     }
@@ -317,17 +439,22 @@ public class SettingActivity extends AppCompatActivity {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         sp.edit().clear().commit();
         Log.d("Delete","done");
-        email = null;
-        username = null;
+        apiemail = null;
+        apiusername = null;
+        apitoken = null;
 
 
     }
-
-
-
     private class getDestinations extends AsyncTask<String, Void, Void> {
         @Override
         protected Void doInBackground(String... params) {
+
+            //API通信のための会員Email及びToken(Preferenseから取得）
+            String username;
+            String email;
+            String token;
+
+
 
 
 

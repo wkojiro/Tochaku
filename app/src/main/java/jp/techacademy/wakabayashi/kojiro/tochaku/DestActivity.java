@@ -62,7 +62,7 @@ public class DestActivity extends AppCompatActivity {
     static String token;
 
     //Responseを受け取るためのパラメータ
-    static String res_destid;
+    static Integer res_destid;
     static String res_destname;
     static String res_destemail;
     static String res_destaddress;
@@ -137,7 +137,7 @@ public class DestActivity extends AppCompatActivity {
             dest = gson.fromJson(jsonData.toString(),Dest.class);
 
             if(dest != null) {
-                res_destid = dest.getDestId();
+                res_destid = dest.getRailsId();
                 res_destname = dest.getDestName();
                 res_destemail = dest.getDestEmail();
                 res_destaddress = dest.getDestAddress();

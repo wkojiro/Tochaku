@@ -79,7 +79,6 @@ public class LoginActivity extends AppCompatActivity {
    // private MyTask task;
     private Integer count = 0;
 
-    private TochakuService mTochakuService;
 
     ProgressDialog mProgress;
 
