@@ -56,6 +56,8 @@ import io.realm.Sort;
 
 public class SettingActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
+    public final static String EXTRA_DEST = "jp.techacademy.wakabayashi.kojiro.tochaku.DEST";
+
     //パーツの定義
     TextView mUserNameText;
     TextView mEmailText;
@@ -84,6 +86,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     static String apiusername;
     static String apiemail;
     static String apitoken;
+    static String apipassword;
 
     String preusername;
     String preemail;
@@ -114,6 +117,69 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     static Float res_destlatitude;
     static Float res_destlongitude;
     static String res_desturl;
+
+
+    public String Deletelogout(){
+        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+        BufferedReader reader = null;
+        StringBuilder jsonData = new StringBuilder();
+        String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_out.json";
+
+        InputStream inputStream = null;
+        String result = "";
+
+        //ここにDeleteのAPIをたたくString urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ token +"";
+        Log.d("ログアウト","logout");
+        Log.d("ログアウト",apiemail);
+        Log.d("ログアウト",apitoken);
+
+
+        final String json =
+                "{\"user\":{" +
+                        "\"email\":\"" + apiemail + "\"," +
+                        "\"access_token\":\"" + apitoken + "\"" +
+                        "}" +
+                "}";
+
+        System.out.println(json.toString());
+        try {
+            // https://rails5api-wkojiro1.c9users.io/users/sign_out.json
+            URL url = new URL(urlString);
+            con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
+            con.setRequestMethod("DELETE");
+            con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
+            con.setRequestProperty("Accept-Language", "jp");
+            con.setDoOutput(false); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
+            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+
+
+            // //////////////////////////////////////
+            // リスエストの送信
+            // //////////////////////////////////////
+            OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+
+            // con.getResponseCode();
+
+            PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
+            ps.print(json);// JsonをPOSTする
+            ps.close();
+            int responseCode = con.getResponseCode();
+            Log.d("レスポンス",String.valueOf(responseCode));
+        } catch (ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Log.d("目的地登録", "Postしてみました");
+        // mProgress.dismiss();
+
+        result = "OK";
+
+
+        // return result
+        return result;
+    }
 
 
     public String GetdestList(){
@@ -244,7 +310,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
        // Log.d("user name",String.valueOf(sp));
         apiusername = sp.getString(Const.UnameKEY, "");
         apiemail = sp.getString(Const.EmailKEY, "");
+       // apipassword = sp.getString(Const.PassKey, "");
         apitoken = sp.getString(Const.TokenKey, "");
+        apipassword = sp.getString(Const.PassKey, "");
 
 
             new getDestinations().execute();
@@ -269,6 +337,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 // キーボードが出てたら閉じる
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
+
+                Log.d("プロフィールボタン","プロフィールボタン");
 
 
             }
@@ -306,6 +377,14 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // ①入力・編集する画面に遷移させる
                 // ②トグルかチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
+                Log.d("リストビュー","タップ");
+                Dest dest = (Dest) parent.getAdapter().getItem(position);
+
+
+
+                Intent intent = new Intent(SettingActivity.this, DestActivity.class);
+                intent.putExtra(EXTRA_DEST, dest.getId());
+                startActivity(intent);
 
             }
         });
@@ -421,22 +500,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         @Override
         protected Void doInBackground(Void... params) {
 
-
-            //ここにDeleteのAPIをたたくString urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ token +"";
-        Log.d("ログアウト","logout");
-            try {
-
-                URL url = new URL("https://rails5api-wkojiro1.c9users.io/users.json");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setDoOutput(true);
-                con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded" );
-                con.setRequestMethod("DELETE");
-                con.connect();
-            } catch (ProtocolException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            Deletelogout();
             return null;
         }
 
@@ -459,8 +523,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         // Preferenceを削除する
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-
-        sp.edit().clear().commit();
+        //sp.edit().remove("token").commit();
+        sp.edit().remove("username").remove("email").remove("access_token").commit();
+        //sp.edit().clear().commit();
         Log.d("Delete","done");
         apiemail = null;
         apiusername = null;
@@ -491,7 +556,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(Void result) {
-            Log.d("Post","done");
+            Log.d("GetDestination","done");
 
             //response();
 

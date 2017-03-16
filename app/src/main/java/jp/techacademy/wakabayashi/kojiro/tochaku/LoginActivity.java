@@ -65,12 +65,13 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     String username;
     String email;
     String password;
-    String access_token;
+//    String access_token;
 
-    static String res_token;
-    static String res_id;
-    static String res_username;
-    static String res_email;
+    String res_token;
+    String res_id;
+    String res_username;
+    String res_email;
+    String res_password;
 
     String mPasswordConfirmationEditText;
     String mTokenText;
@@ -80,12 +81,18 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     private Integer count = 0;
 
 
+    //API用変数
+    HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+    BufferedReader reader = null;
+    StringBuilder jsonData = new StringBuilder();
+    InputStream inputStream = null;
+    String result = "";
+    String result2 = "";
+
+
     ProgressDialog mProgress;
 
-    // アカウント作成時にフラグを立てる。今の所使い道は不明
-    boolean mIsCreateAccount = false;
-
-    public static String Login(User user){
+    public String Login(User user){
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
         BufferedReader reader = null;
         StringBuilder jsonData = new StringBuilder();
@@ -93,6 +100,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
         InputStream inputStream = null;
         String result = "";
+
 
         String email = user.getEmail();
         String password = user.getPassword();
@@ -149,6 +157,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
                 System.out.println("username = " + user.getUserName());
                 System.out.println("access_token = " + user.getToken());
 
+
             }
 
             con.disconnect();
@@ -171,22 +180,22 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     }
 
 
+
+
+
+    /*  POST 新規会員登録 */
     //http://hmkcode.com/android-send-json-data-to-server/
-    public static String Post(User user){
+    public String Post(String urlString , String[] params) {
 
-       // mProgress.show();
-
-        // アカウントを作成する"https://rails5api-wkojiro1.c9users.io/users.json"
+        Log.d("params", params[0]);
 /*
-        Javaでは、各種データをストリームとして扱うことができます。 ストリームデータには、ファイル内のデータ、標準入力や標準出力、通信データ、文字列データなどがあります。
-　ストリームには、バイト単位に扱う最も下位のクラスと、バッファリングしたり文字コード変換を行うクラスと、行単位で入出力を行うクラスがあり、組み合わせて使います。
+Javaでは、各種データをストリームとして扱うことができます。 ストリームデータには、ファイル内のデータ、標準入力や標準出力、通信データ、文字列データなどがあります。
+ストリームには、バイト単位に扱う最も下位のクラスと、バッファリングしたり文字コード変換を行うクラスと、行単位で入出力を行うクラスがあり、組み合わせて使います。
 http://ash.jp/java/stream.htm
-*/
+
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
         BufferedReader reader = null;
         StringBuilder jsonData = new StringBuilder();
-        String urlString = "https://rails5api-wkojiro1.c9users.io/users.json";
-
         InputStream inputStream = null;
         String result = "";
 
@@ -196,12 +205,15 @@ http://ash.jp/java/stream.htm
         String password = user.getPassword();
        // String password2 = user.getPassword();
 
+*/
+        int status = 0;
+
         final String json =
                 "{\"user\":{" +
-                        "\"username\":\"" + username + "\"," +
-                        "\"email\":\"" + email + "\"," +
-                        "\"password\":\"" + password + "\"," +
-                        "\"password_confirmation\":\""+ password + "\"" +
+                        "\"username\":\"" + params[1] + "\"," +
+                        "\"email\":\"" + params[2] + "\"," +
+                        "\"password\":\"" + params[3] + "\"," +
+                        "\"password_confirmation\":\"" + params[3] + "\"" +
                         "}" +
                 "}";
 
@@ -209,7 +221,7 @@ http://ash.jp/java/stream.htm
 
             URL url = new URL(urlString); //URLを生成
             con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
-            con.setRequestMethod("POST");
+            con.setRequestMethod(params[0]);
             con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
             con.setRequestProperty("Accept-Language", "jp");
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
@@ -220,39 +232,41 @@ http://ash.jp/java/stream.htm
             // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
-           // con.getResponseCode();
+            // con.getResponseCode();
 
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
             ps.close();
 
-            //多分ここからResponseのための器をつくっている。
-            //戻り値の指定をしないと動かないのかな？
+            status = con.getResponseCode();
+            Log.d("結果", String.valueOf(status));
+            if (status == HttpURLConnection.HTTP_OK) {
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+                String line = reader.readLine();
+                while (line != null) {
+                    jsonData.append(line);
+                    line = reader.readLine();
+                }
+                System.out.println(jsonData.toString());
 
-            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
-            String line = reader.readLine();
-            while (line != null) {
-                jsonData.append(line);
-                line = reader.readLine();
+                // JSON to Java
+                Gson gson = new Gson();
+                user = gson.fromJson(jsonData.toString(), User.class);
+
+                if (user != null) {
+                    res_id = user.getUid();
+                    res_token = user.getToken();
+                    res_username = user.getUserName();
+                    res_email = user.getEmail();
+                    res_password = user.getPassword();
+                    Log.d("レスポンス", res_id);
+                    System.out.println("id = " + user.getUid());
+                    System.out.println("username = " + user.getUserName());
+                    System.out.println("token = " + user.getToken());
+
+                }
+
             }
-            System.out.println(jsonData.toString());
-
-            // JSON to Java
-            Gson gson = new Gson();
-            user = gson.fromJson(jsonData.toString(),User.class);
-
-            if(user != null) {
-               res_id = user.getUid();
-               res_token = user.getToken();
-               res_username = user.getUserName();
-               res_email = user.getEmail();
-
-                System.out.println("id = " + user.getUid());
-                System.out.println("username = " + user.getUserName());
-                System.out.println("token = " + user.getToken());
-
-            }
-
             con.disconnect();
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -265,11 +279,15 @@ http://ash.jp/java/stream.htm
         }
 
         Log.d("会員登録", "Postしてみました");
-       // mProgress.dismiss();
+        // StatusCodeが２００番代であればOK
 
-        result = "OK";
+        if (status/100 == 2){
+            result2 = "OK";
+        } else {
+            result2 = "NG";
+        }
 
-        return result;
+        return result2;
     }
 
     @Override
@@ -280,68 +298,52 @@ http://ash.jp/java/stream.htm
 
     }
 
+
+    /* onCreate */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // //////////////////////////////////////
-        // Retrofit + Gson
-        // //////////////////////////////////////
-/*
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(TochakuService.END_POINT)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        mTochakuService = retrofit.create(TochakuService.class);
-*/
 
-        //UIの準備
+        //memo: UIの準備
         setTitle("ログイン");
 
         mUserNameEditText = (EditText) findViewById(R.id.usernameText);
         mEmailEditText = (EditText) findViewById(R.id.emailText);
         mPasswordEditText = (EditText) findViewById(R.id.passwordText);
 
-
+        //memo: 未実装
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("処理中...");
 
-
-
+        //memo: 新規登録
         Button createButton = (Button) findViewById(R.id.createButton);
         createButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // キーボードが出てたら閉じる
+                //memo: キーボードが出てたら閉じる
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
 
+                String type = "POST";
                 username = mUserNameEditText.getText().toString();
                 email = mEmailEditText.getText().toString();
                 password = mPasswordEditText.getText().toString();
 
-
-                Log.d("ユーザー登録","ddd");
                 if (email.length() != 0 && password.length() >= 6 ) {
-                    // ログイン時に表示名を保存するようにフラグを立てる
-                    mIsCreateAccount = true;
-                    Log.d("ユーザー登録","ddd");
 
-                    new createAccount().execute();
+                    new createAccount().execute(type, username ,email , password);
                    // createAccount(email, password);
                 } else {
-                    // 非同期処理を開始する
-                    //new createAccount().execute();
-                    //createAccount();
-                    Log.d("ユーザー登録","ddd");
-                    // エラーを表示する
+
                     Snackbar.make(v, "正しく入力してください", Snackbar.LENGTH_LONG).show();
 
                 }
             }
         });
 
+        //memo: ログイン
         Button loginButton = (Button) findViewById(R.id.loginButton);
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -355,7 +357,6 @@ http://ash.jp/java/stream.htm
 
                 if (email.length() != 0 && password.length() >= 6) {
                     // フラグを落としておく
-                    mIsCreateAccount = false;
 
                     Log.d("ログイン","aaa");
 
@@ -392,35 +393,55 @@ http://ash.jp/java/stream.htm
 
 
 //    private void createAccount(String email, String password) {
-    private class createAccount extends AsyncTask<String, Void, Void> {
+    private class createAccount extends AsyncTask<String, Void, String> {
         @Override
-        protected Void doInBackground(String... params) {
+        protected String doInBackground(String... params) {
 
+            String urlString = "https://rails5api-wkojiro1.c9users.io/users.json";
+
+            //params[0] is method
             user = new User();
-            user.setUsername(username);
-            user.setEmail(email);
-            user.setPassword(password);
+            user.setUsername(params[1]);
+            user.setEmail(params[2]);
+            user.setPassword(params[3]);
 
-            //return POST();
-            Post(user);
-            Log.d("user",String.valueOf(user));
-            return null;
+            Post(urlString,params);
+
+            Log.d("result", String.valueOf(result));
+
+            if(result2.equals("OK")){
+                result = "OK";
+
+            } else {
+                result = "NG";
+            }
+                return result;
 
         }
 
         // onPostExecute displays the results of the AsyncTask.
         @Override
-        protected void onPostExecute(Void result) {
+        protected void onPostExecute(String result) {
             Log.d("Post","done");
 
-            //response();
+            Log.d("result", String.valueOf(result));
+            Log.d("resultUser", String.valueOf(user));
+            Log.d("resultUserToken", String.valueOf(user.getToken()));
+            Log.d("resultUserUsername", res_username);
+            if(result.equals("OK")) {
+
+                saveUserdata(user);
+                View v = findViewById(android.R.id.content);
+                Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
+                finish();
+
+            } else {
+                View v = findViewById(android.R.id.content);
+                Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+
+            }
 
 
-            saveUserdata(user);
-            View v = findViewById(android.R.id.content);
-            Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
-
-            finish();
         }
     }
 
@@ -467,6 +488,9 @@ http://ash.jp/java/stream.htm
 */
     private void saveUserdata(User user) {
 
+
+        Log.d("saveUserdataまで届いている？", String.valueOf(user));
+        Log.d("saveUserdataまで届いている？", res_username);
        // Integer loginkey = 1;
         // Preferenceに保存する
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
@@ -476,7 +500,8 @@ http://ash.jp/java/stream.htm
         editor.putString(Const.UnameKEY, res_username);
         editor.putString(Const.EmailKEY, res_email);
         editor.putString(Const.TokenKey, res_token);
-        //editor.putInt(Const.LoginKey, 1);
+        editor.putString(Const.PassKey, res_password);
+
 
         editor.commit();
     }

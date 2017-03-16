@@ -43,17 +43,25 @@ public class DestAdapter extends BaseAdapter{
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         if(convertView == null){
-            convertView = mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null);
+            //convertView = mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null);
+
+            convertView = mLayoutInflater.inflate(R.layout.list_dests, parent ,false);
         }
 
-        TextView textView1 = (TextView) convertView.findViewById(android.R.id.text1);
-        TextView textView2 = (TextView) convertView.findViewById(android.R.id.text2);
+        TextView textView1 = (TextView) convertView.findViewById(R.id.nameTextView);
+        TextView textView2 = (TextView) convertView.findViewById(R.id.addressTextView);
+        TextView textView3 = (TextView) convertView.findViewById(R.id.emailTextView);
+
 
         textView1.setText(mDestArrayList.get(position).getDestName());
         textView2.setText(mDestArrayList.get(position).getDestAddress());
+        textView3.setText(mDestArrayList.get(position).getDestEmail());
 
 
 
         return convertView;
     }
+
+
+
 }

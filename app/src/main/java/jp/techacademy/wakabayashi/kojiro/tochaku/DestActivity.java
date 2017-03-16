@@ -8,6 +8,7 @@ package jp.techacademy.wakabayashi.kojiro.tochaku;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
@@ -33,7 +34,11 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 
+import io.realm.Realm;
+
 public class DestActivity extends AppCompatActivity {
+
+    private Dest mDest;
 
     //パーツの定義
     EditText mDestNameText;
@@ -46,6 +51,7 @@ public class DestActivity extends AppCompatActivity {
     String destname;
     String destemail;
     String destaddress;
+    Integer railsid;
 
     //Responseを受けるパラメータ
     String resdestid;
@@ -68,6 +74,111 @@ public class DestActivity extends AppCompatActivity {
     static String res_destaddress;
     static Float res_destlatitude;
     static Float res_destlongitude;
+
+
+
+    public String Edit(Dest mDest){
+        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+        BufferedReader reader = null;
+        StringBuilder jsonData = new StringBuilder();
+        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations/"+ railsid +".json?email="+ email +"&token="+ token +"";
+
+        InputStream inputStream = null;
+        String result = "";
+
+
+        String name = mDest.getDestName();
+        String email = mDest.getDestEmail();
+        String address = mDest.getDestAddress();
+        // String password2 = user.getPassword();
+
+        final String json =
+                "{" +
+                        "\"name\":\"" + name + "\"," +
+                        "\"email\":\"" + email + "\"," +
+                        "\"address\":\"" + address + "\"" +
+                        "}";
+
+        try {
+
+            URL url = new URL(urlString); //URLを生成
+            con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
+            con.setRequestMethod("PUT");
+            con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
+            con.setRequestProperty("Accept-Language", "jp");
+            con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
+            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+
+
+            // //////////////////////////////////////
+            // リスエストの送信
+            // //////////////////////////////////////
+            OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+            // con.getResponseCode();
+
+
+            PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
+            ps.print(json);// JsonをPOSTする
+            ps.close();
+            final int status = con.getResponseCode();
+            Log.d("結果",String.valueOf(status));
+            if(status == HttpURLConnection.HTTP_OK) {
+
+
+                //多分ここからResponseのための器をつくっている。
+                //戻り値の指定をしないと動かないのかな？
+
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+                String line = reader.readLine();
+                while (line != null) {
+                    jsonData.append(line);
+                    line = reader.readLine();
+                }
+
+                System.out.println(jsonData.toString());
+
+
+                // JSON to Java
+                Gson gson = new Gson();
+                mDest = gson.fromJson(jsonData.toString(), Dest.class);
+
+                if (mDest != null) {
+                    res_destid = mDest.getRailsId();
+                    res_destname = mDest.getDestName();
+                    res_destemail = mDest.getDestEmail();
+                    res_destaddress = mDest.getDestAddress();
+                    res_destlatitude = mDest.getDestLatitude();
+                    res_destlongitude = mDest.getDestLongitude();
+
+                    System.out.println("ID = " + mDest.getId());
+                    System.out.println("Rails = " + mDest.getRailsId());
+
+                }
+            }
+            con.disconnect();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
+        Log.d("目的地登録", "Postしてみました");
+        // mProgress.dismiss();
+
+        result = "OK";
+
+
+        // return result
+        return result;
+    }
 
 
     public static String Post(Dest dest){
@@ -114,39 +225,41 @@ public class DestActivity extends AppCompatActivity {
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
             ps.close();
+            final int status = con.getResponseCode();
+            Log.d("結果",String.valueOf(status));
+            if(status == HttpURLConnection.HTTP_OK) {
 
 
+                //多分ここからResponseのための器をつくっている。
+                //戻り値の指定をしないと動かないのかな？
 
-            //多分ここからResponseのための器をつくっている。
-            //戻り値の指定をしないと動かないのかな？
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+                String line = reader.readLine();
+                while (line != null) {
+                    jsonData.append(line);
+                    line = reader.readLine();
+                }
 
-            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
-            String line = reader.readLine();
-            while (line != null) {
-                jsonData.append(line);
-                line = reader.readLine();
+                System.out.println(jsonData.toString());
+
+
+                // JSON to Java
+                Gson gson = new Gson();
+                dest = gson.fromJson(jsonData.toString(), Dest.class);
+
+                if (dest != null) {
+                    res_destid = dest.getRailsId();
+                    res_destname = dest.getDestName();
+                    res_destemail = dest.getDestEmail();
+                    res_destaddress = dest.getDestAddress();
+                    res_destlatitude = dest.getDestLatitude();
+                    res_destlongitude = dest.getDestLongitude();
+
+                    System.out.println("ID = " + res_destid);
+                    System.out.println("railsID = " + dest.getRailsId());
+
+                }
             }
-
-            System.out.println(jsonData.toString());
-
-
-            // JSON to Java
-            Gson gson = new Gson();
-            dest = gson.fromJson(jsonData.toString(),Dest.class);
-
-            if(dest != null) {
-                res_destid = dest.getRailsId();
-                res_destname = dest.getDestName();
-                res_destemail = dest.getDestEmail();
-                res_destaddress = dest.getDestAddress();
-                res_destlatitude = dest.getDestLatitude();
-                res_destlongitude = dest.getDestLongitude();
-
-                System.out.println("destname = " + dest.getDestName());
-                System.out.println("destaddress = " + dest.getDestAddress());
-
-            }
-
             con.disconnect();
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -188,11 +301,34 @@ public class DestActivity extends AppCompatActivity {
         Log.d("トークン",String.valueOf(token));
 
 
+        Intent intent = getIntent();
+        int destId = intent.getIntExtra(SettingActivity.EXTRA_DEST, -1);
+        Log.d("destId",String.valueOf(destId));
+
+        Realm realm = Realm.getDefaultInstance();
+        mDest = realm.where(Dest.class).equalTo("id", destId).findFirst();
+        realm.close();
+
+        if (mDest == null) {
+            mDestNameText = (EditText) findViewById(R.id.destNameText);
+            mDestEmailText = (EditText) findViewById(R.id.destEmailText);
+            mDestAddressText = (EditText) findViewById(R.id.destAddressText);
+        } else {
+            mDestNameText = (EditText) findViewById(R.id.destNameText);
+            mDestEmailText = (EditText) findViewById(R.id.destEmailText);
+            mDestAddressText = (EditText) findViewById(R.id.destAddressText);
 
 
-        mDestNameText = (EditText) findViewById(R.id.destNameText);
-        mDestEmailText = (EditText) findViewById(R.id.destEmailText);
-        mDestAddressText = (EditText) findViewById(R.id.destAddressText);
+
+            railsid = mDest.getRailsId();
+            mDestNameText.setText(mDest.getDestName());
+            mDestEmailText.setText(mDest.getDestEmail());
+            mDestAddressText.setText(mDest.getDestAddress());
+
+
+
+        }
+
 
 
         Button createButton = (Button) findViewById(R.id.createButton);
@@ -202,22 +338,52 @@ public class DestActivity extends AppCompatActivity {
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
 
-                destname = mDestNameText.getText().toString();
-                destemail = mDestEmailText.getText().toString();
-                destaddress = mDestAddressText.getText().toString();
+                if(mDest == null) {
+                //新規登録
+                    destname = mDestNameText.getText().toString();
+                    destemail = mDestEmailText.getText().toString();
+                    destaddress = mDestAddressText.getText().toString();
 
 
-                Log.d("ユーザー登録","ddd");
-                if (destname.length() != 0 && destemail.length() != 0 && destaddress.length() != 0) {
+                    Log.d("ユーザー登録", "ddd");
+                    if (destname.length() != 0 && destemail.length() != 0 && destaddress.length() != 0) {
 
-                    Log.d("目的地登録","ddd");
+                        Log.d("目的地登録", "ddd");
 
-                    new DestActivity.createDestination().execute();
+                        new DestActivity.createDestination().execute();
 
+                    } else {
+                        Log.d("目的地登録エラー", "ddd");
+                        // エラーを表示する
+                        Snackbar.make(v, "目的地の情報が正しく入力されていません", Snackbar.LENGTH_LONG).show();
+
+                    }
                 } else {
-                    Log.d("目的地登録エラー","ddd");
-                    // エラーを表示する
-                    Snackbar.make(v, "目的地の情報が正しく入力されていません", Snackbar.LENGTH_LONG).show();
+                //更新登録
+
+                    railsid = mDest.getRailsId();
+                    destname = mDestNameText.getText().toString();
+                    destemail = mDestEmailText.getText().toString();
+                    destaddress = mDestAddressText.getText().toString();
+
+
+                    Log.d("ユーザー登録", "ddd");
+                    if (destname.length() != 0 && destemail.length() != 0 && destaddress.length() != 0) {
+
+                        Log.d("目的地登録", "ddd");
+
+                        new DestActivity.editDestination().execute();
+
+                    } else {
+                        Log.d("目的地登録エラー", "ddd");
+                        // エラーを表示する
+                        Snackbar.make(v, "目的地の情報が正しく入力されていません", Snackbar.LENGTH_LONG).show();
+
+                    }
+
+
+
+
 
                 }
 
@@ -225,6 +391,42 @@ public class DestActivity extends AppCompatActivity {
 
         });
     }
+
+    private class editDestination extends AsyncTask<String, Void, Void>{
+        @Override
+        protected Void doInBackground(String... params) {
+
+            mDest.setDestName(destname);
+            mDest.setDestEmail(destemail);
+            mDest.setDestAddress(destaddress);
+
+
+            Edit(mDest);
+            Log.d("dest",String.valueOf(mDest));
+            return null;
+
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            Log.d("","done");
+
+            //response();
+
+
+
+            View v = findViewById(android.R.id.content);
+            Snackbar.make(v, "目的地情報を更新しました。", Snackbar.LENGTH_LONG).show();
+
+            finish();
+        }
+
+
+
+    }
+
+
+
+
 
     private class createDestination extends AsyncTask<String, Void, Void>{
         @Override
@@ -234,8 +436,6 @@ public class DestActivity extends AppCompatActivity {
             dest.setDestName(destname);
             dest.setDestEmail(destemail);
             dest.setDestAddress(destaddress);
-
-
 
             Post(dest);
             Log.d("dest",String.valueOf(dest));
