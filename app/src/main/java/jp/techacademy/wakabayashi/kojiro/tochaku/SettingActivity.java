@@ -23,6 +23,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -83,14 +84,11 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     ProgressDialog mProgress;
 
     //API通信のための会員Email及びToken(Preferenseから取得）
-    static String apiusername;
-    static String apiemail;
-    static String apitoken;
-    static String apipassword;
+    String apiusername;
+    String apiemail;
+    String apitoken;
 
-    String preusername;
-    String preemail;
-    String pretoken;
+
 
 
     Dest dest;
@@ -109,29 +107,28 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
 
     //Responseを受け取るためのパラメータ
-    static Dest res_dest;
-    static Integer res_destid;
-    static String res_destname;
-    static String res_destemail;
-    static String res_destaddress;
-    static Float res_destlatitude;
-    static Float res_destlongitude;
-    static String res_desturl;
+    Dest res_dest;
+    Integer res_destid;
+    String res_destname;
+    String res_destemail;
+    String res_destaddress;
+    Float res_destlatitude;
+    Float res_destlongitude;
+    String res_desturl;
 
+
+    //API用変数
+    HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+    BufferedReader reader = null;
+    StringBuilder jsonData = new StringBuilder();
+    InputStream inputStream = null;
+    String result = "";
+    String result2 = "";
+    int status = 0;
 
     public String Deletelogout(){
-        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
-        BufferedReader reader = null;
-        StringBuilder jsonData = new StringBuilder();
+
         String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_out.json";
-
-        InputStream inputStream = null;
-        String result = "";
-
-        //ここにDeleteのAPIをたたくString urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ token +"";
-        Log.d("ログアウト","logout");
-        Log.d("ログアウト",apiemail);
-        Log.d("ログアウト",apitoken);
 
 
         final String json =
@@ -143,7 +140,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
         System.out.println(json.toString());
         try {
-            // https://rails5api-wkojiro1.c9users.io/users/sign_out.json
+
             URL url = new URL(urlString);
             con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
             con.setRequestMethod("DELETE");
@@ -153,9 +150,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
 
-            // //////////////////////////////////////
             // リスエストの送信
-            // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
 
@@ -164,34 +159,30 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
             ps.close();
-            int responseCode = con.getResponseCode();
-            Log.d("レスポンス",String.valueOf(responseCode));
+            status = con.getResponseCode();
+            Log.d("レスポンス",String.valueOf(status));
+
+
         } catch (ProtocolException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Log.d("目的地登録", "Postしてみました");
         // mProgress.dismiss();
 
-        result = "OK";
+        if (status/100 == 2){
+            result2 = "OK";
+        } else {
+            result2 = "NG";
+        }
+        return result2;
 
-
-        // return result
-        return result;
     }
 
 
     public String GetdestList(){
 
-
-        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
-        BufferedReader reader = null;
-        StringBuilder jsonData = new StringBuilder();
         String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ apiemail +"&token="+ apitoken +"";
-
-        InputStream inputStream = null;
-        String result = "";
 
         try {
 
@@ -203,19 +194,12 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
            // con.setDoInput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-
-            // //////////////////////////////////////
-            // リスエストの送信
-            // //////////////////////////////////////
-            InputStream is = con.getInputStream(); //GETだから
+            inputStream = con.getInputStream(); //GETだから
             con.connect();
 
-            final int status = con.getResponseCode();
+            status = con.getResponseCode();
             Log.d("結果",String.valueOf(status));
-            if(status == HttpURLConnection.HTTP_OK){
-
-                //多分ここからResponseのための器をつくっている。
-                //戻り値の指定をしないと動かないのかな？
+            if(status/100 == 2){
 
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
@@ -244,32 +228,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
                 realm.close();
 
-
             }
-            //ここからRealm 及び　Arrayにいれる
-            //con.getResponseCode();
-
-
-            // JSON to Java
-            /*
-            Gson gson = new Gson();
-            res_dest = gson.fromJson(jsonData.toString(),Dest.class);
-
-            if(res_dest != null) {
-
-                res_destid = res_dest.getRailsId();
-                res_destname = res_dest.getDestName();
-                res_destemail = res_dest.getDestEmail();
-                res_destaddress = res_dest.getDestAddress();
-                res_destlatitude = res_dest.getDestLatitude();
-                res_destlongitude = res_dest.getDestLongitude();
-                res_desturl = res_dest.getDestUrl();
-
-
-                System.out.println("id = " + res_dest.getRailsId());
-
-            }*/
-
 
             con.disconnect();
         } catch (MalformedURLException e) {
@@ -284,54 +243,42 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
 
 
-        Log.d("目的地登録", "Postしてみました");
-        // mProgress.dismiss();
-
-        result = "OK";
-
-
-        // return result
-        return result;
-
-
+        if (status/100 == 2){
+            result2 = "OK";
+        } else {
+            result2 = "NG";
+        }
+        return result2;
     }
 
 
-
+    /* onCreate */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
-
+        //memo: Login時に保存したユーザーデータを取得
         sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         sp.registerOnSharedPreferenceChangeListener(this);
 
-       // Log.d("user name",String.valueOf(sp));
         apiusername = sp.getString(Const.UnameKEY, "");
         apiemail = sp.getString(Const.EmailKEY, "");
-       // apipassword = sp.getString(Const.PassKey, "");
         apitoken = sp.getString(Const.TokenKey, "");
-        apipassword = sp.getString(Const.PassKey, "");
 
-
-            new getDestinations().execute();
-
-
+        //memo: 目的地一覧を取得
+        new getDestinations().execute();
 
         setTitle("設定画面");
         mUserNameText = (TextView) findViewById(R.id.userNameText);
-
         mUserNameText.setText(apiusername);
         mEmailText = (TextView) findViewById(R.id.EmailText);
         mEmailText.setText(apiemail);
         mDestCountText = (TextView) findViewById(R.id.DestsText);
 
 
-
-
-        Button profileButton = (Button) findViewById(R.id.ProfileButton);
-        profileButton.setOnClickListener(new View.OnClickListener() {
+        mProfileButton = (Button) findViewById(R.id.ProfileButton);
+        mProfileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // キーボードが出てたら閉じる
@@ -345,8 +292,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             }
         });
 
-        Button logoutButton = (Button) findViewById(R.id.LogoutButton);
-        logoutButton.setOnClickListener(new View.OnClickListener() {
+        mLogoutButton = (Button) findViewById(R.id.LogoutButton);
+        mLogoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // キーボードが出てたら閉じる
@@ -362,7 +309,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         });
 
 
-        // Realmの設定
+        //memo: Realmの設定
         mRealm = Realm.getDefaultInstance();
         mDestRealmResults = mRealm.where(Dest.class).findAll();
         mRealm.addChangeListener(mRealmListener);
@@ -375,21 +322,22 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // ①入力・編集する画面に遷移させる
-                // ②トグルかチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
+                // ①入力・編集する画面に遷移させる ②トチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
                 Log.d("リストビュー","タップ");
                 Dest dest = (Dest) parent.getAdapter().getItem(position);
-
-
 
                 Intent intent = new Intent(SettingActivity.this, DestActivity.class);
                 intent.putExtra(EXTRA_DEST, dest.getId());
                 startActivity(intent);
 
+
+
+
+
             }
         });
 
-        // ListViewを長押ししたときの処理
+        //memo: ListViewを長押ししたときの処理
         mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -400,25 +348,21 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             }
         });
 
+
+
+
+
         if (mDestRealmResults.size() == 0) {
             // アプリ起動時にタスクの数が0であった場合は表示テスト用のタスクを作成する
             addDestForTest();
         }
-
         reloadListView();
-
-
     }
     private void reloadListView() {
 
-        // 後でTaskクラスに変更する
 
         ArrayList<Dest> destArrayList = new ArrayList<>();
-         /*
-        destArrayList.add("aaa");
-        destArrayList.add("bbb");
-        destArrayList.add("ccc");
-        */
+
         for (int i = 0; i < mDestRealmResults.size(); i++){
             if(!mDestRealmResults.get(i).isValid()) continue;
 
@@ -439,6 +383,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mDestAdapter.setDestArrayList(destArrayList);
         mListView.setAdapter(mDestAdapter);
         mDestAdapter.notifyDataSetChanged();
+
     }
 
     @Override
@@ -465,9 +410,100 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        // handle the preference change here
         Log.d("変更","SettingActivityに書かれているLogです。");
     }
+
+
+    private class logout extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+
+            Deletelogout();
+
+            if(result2.equals("OK")){
+                result = "OK";
+
+            } else {
+                result = "NG";
+            }
+            return result;
+
+        }
+
+        // onPostExecute displays the results of the AsyncTask.
+        @Override
+        protected void onPostExecute(String result) {
+
+            View v = findViewById(android.R.id.content);
+            if(result.equals("OK")) {
+                deleteUserdata();
+
+                Snackbar.make(v, "ログアウトしました", Snackbar.LENGTH_LONG).show();
+                finish();
+            } else {
+                Snackbar.make(v, "ログアウトに失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+            }
+        }
+
+    }
+
+    //memo: ログアウト時にPreferenceを削除する。（＊sp.edit().clear().commit() だと何故かListenerが反応しない。
+    private void deleteUserdata() {
+        // Preferenceを削除する
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        sp.edit().remove("username").remove("email").remove("access_token").commit();
+        //sp.edit().clear().commit();
+        Log.d("Delete","done");
+        apiemail = null;
+        apiusername = null;
+        apitoken = null;
+
+        mRealm.beginTransaction();
+        mRealm.deleteAll();
+        mRealm.commitTransaction();
+
+
+    }
+
+
+    //memo: 目的地一覧をGET
+    private class getDestinations extends AsyncTask<String, Void, String> {
+        @Override
+        protected  String doInBackground(String... params) {
+
+
+
+            GetdestList();
+            if(result2.equals("OK")){
+                result = "OK";
+
+            } else {
+                result = "NG";
+            }
+
+
+            return result;
+
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            Log.d("GetDestination","done");
+            View v = findViewById(android.R.id.content);
+            if(result.equals("OK")) {
+                //saveUserdata();
+                Snackbar.make(v, "目的地の一覧を取得しました", Snackbar.LENGTH_LONG).show();
+
+            } else {
+                Snackbar.make(v, "目的地の一覧取得に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+            }
+        }
+    }
+
+
+
+    //memo: 右上のメニューボタン
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -487,85 +523,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             Intent intent = new Intent(getApplicationContext(), DestActivity.class);
             startActivity(intent);
 
-
             return true;
         }
-
         return super.onOptionsItemSelected(item);
-    }
-
-
-
-    private class logout extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... params) {
-
-            Deletelogout();
-            return null;
-        }
-
-        // onPostExecute displays the results of the AsyncTask.
-        @Override
-        protected void onPostExecute(Void result) {
-            //response();
-
-            //SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            deleteUserdata();
-
-
-            View v = findViewById(android.R.id.content);
-            Snackbar.make(v, "ログアウトしました", Snackbar.LENGTH_LONG).show();
-            finish();
-        }
-
-    }
-    private void deleteUserdata() {
-        // Preferenceを削除する
-
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        //sp.edit().remove("token").commit();
-        sp.edit().remove("username").remove("email").remove("access_token").commit();
-        //sp.edit().clear().commit();
-        Log.d("Delete","done");
-        apiemail = null;
-        apiusername = null;
-        apitoken = null;
-
-
-    }
-    private class getDestinations extends AsyncTask<String, Void, Void> {
-        @Override
-        protected Void doInBackground(String... params) {
-
-            //API通信のための会員Email及びToken(Preferenseから取得）
-            String username;
-            String email;
-            String token;
-
-
-
-
-
-            //return POST();
-            GetdestList();
-            Log.d("user","");
-            return null;
-
-        }
-
-        // onPostExecute displays the results of the AsyncTask.
-        @Override
-        protected void onPostExecute(Void result) {
-            Log.d("GetDestination","done");
-
-            //response();
-
-
-
-            View v = findViewById(android.R.id.content);
-            Snackbar.make(v, "目的地の一覧を取得しました", Snackbar.LENGTH_LONG).show();
-
-           // finish();
-        }
     }
 }

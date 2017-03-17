@@ -61,25 +61,18 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     EditText mPasswordEditText;
     EditText mUserNameEditText;
 
+    //Postする変数
     User user;
     String username;
     String email;
     String password;
-//    String access_token;
 
+    //Responseで受け取る変数
     String res_token;
     String res_id;
     String res_username;
     String res_email;
-    String res_password;
-
-    String mPasswordConfirmationEditText;
-    String mTokenText;
-
-   // Person person;
-   // private MyTask task;
-    private Integer count = 0;
-
+    // String res_password;
 
     //API用変数
     HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
@@ -88,76 +81,67 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     InputStream inputStream = null;
     String result = "";
     String result2 = "";
+    int status = 0;
 
-
+    // 未実装
     ProgressDialog mProgress;
 
-    public String Login(User user){
-        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
-        BufferedReader reader = null;
-        StringBuilder jsonData = new StringBuilder();
-        String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_in.json";
-
-        InputStream inputStream = null;
-        String result = "";
-
-
-        String email = user.getEmail();
-        String password = user.getPassword();
+    /*  Login ログイン登録 */
+    public String Login(String urlString , String[] params){
 
         final String json =
                 "{\"user\":{" +
-                        "\"email\":\"" + email + "\"," +
-                        "\"password\":\""+ password + "\"" +
+                        "\"email\":\"" + params[1] + "\"," +
+                        "\"password\":\""+ params[2] + "\"" +
                         "}" +
                  "}";
 
         try {
             URL url = new URL(urlString); //URLを生成
             con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
-            con.setRequestMethod("POST");
+            con.setRequestMethod(params[0]);
             con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
             con.setRequestProperty("Accept-Language", "jp");
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-            // //////////////////////////////////////
             // リスエストの送信
-            // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
-            // con.getResponseCode();
 
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
             ps.close();
 
-            //多分ここからResponseのための器をつくっている。
-            //戻り値の指定をしないと動かないのかな？
+            status = con.getResponseCode();
+            Log.d("結果", String.valueOf(status));
 
-            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
-            String line = reader.readLine();
-            while (line != null) {
-                jsonData.append(line);
-                line = reader.readLine();
-            }
-            System.out.println(jsonData.toString());
+            //memo: StatusCodeが２００番代であればOK
+            //if (status == HttpURLConnection.HTTP_OK) {
+            if (status/100 == 2) {
 
-            // JSON to Java
-            Gson gson = new Gson();
-            user = gson.fromJson(jsonData.toString(),User.class);
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+                String line = reader.readLine();
+                while (line != null) {
+                    jsonData.append(line);
+                    line = reader.readLine();
+                }
+                System.out.println(jsonData.toString());
 
-            if(user != null) {
-                res_id = user.getUid();
-                res_token = user.getToken();
-                res_username = user.getUserName();
-                res_email = user.getEmail();
+                // JSON to Java
+                Gson gson = new Gson();
+                user = gson.fromJson(jsonData.toString(), User.class);
 
-                System.out.println("id = " + user.getUid());
-                System.out.println("username = " + user.getUserName());
-                System.out.println("access_token = " + user.getToken());
+                if (user != null) {
+                    res_id = user.getUid();
+                    res_token = user.getToken();
+                    res_username = user.getUserName();
+                    res_email = user.getEmail();
 
-
+                    System.out.println("id = " + user.getUid());
+                    System.out.println("username = " + user.getUserName());
+                    System.out.println("access_token = " + user.getToken());
+                }
             }
 
             con.disconnect();
@@ -173,40 +157,19 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
         Log.d("会員登録", "Postしてみました");
         // mProgress.dismiss();
+        //memo: StatusCodeが２００番代であればOK
+        if (status/100 == 2){
+            result2 = "OK";
+        } else {
+            result2 = "NG";
+        }
 
-        result = "OK";
-
-        return result;
+        return result2;
     }
-
-
-
-
 
     /*  POST 新規会員登録 */
     //http://hmkcode.com/android-send-json-data-to-server/
     public String Post(String urlString , String[] params) {
-
-        Log.d("params", params[0]);
-/*
-Javaでは、各種データをストリームとして扱うことができます。 ストリームデータには、ファイル内のデータ、標準入力や標準出力、通信データ、文字列データなどがあります。
-ストリームには、バイト単位に扱う最も下位のクラスと、バッファリングしたり文字コード変換を行うクラスと、行単位で入出力を行うクラスがあり、組み合わせて使います。
-http://ash.jp/java/stream.htm
-
-        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
-        BufferedReader reader = null;
-        StringBuilder jsonData = new StringBuilder();
-        InputStream inputStream = null;
-        String result = "";
-
-
-        String username = user.getUserName();
-        String email = user.getEmail();
-        String password = user.getPassword();
-       // String password2 = user.getPassword();
-
-*/
-        int status = 0;
 
         final String json =
                 "{\"user\":{" +
@@ -227,12 +190,9 @@ http://ash.jp/java/stream.htm
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-            // //////////////////////////////////////
             // リスエストの送信
-            // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
-            // con.getResponseCode();
 
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
@@ -240,7 +200,10 @@ http://ash.jp/java/stream.htm
 
             status = con.getResponseCode();
             Log.d("結果", String.valueOf(status));
-            if (status == HttpURLConnection.HTTP_OK) {
+
+            //memo: StatusCodeが２００番代であればOK
+            //if (status == HttpURLConnection.HTTP_OK) {
+            if (status/100 == 2) {
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
                 while (line != null) {
@@ -258,14 +221,11 @@ http://ash.jp/java/stream.htm
                     res_token = user.getToken();
                     res_username = user.getUserName();
                     res_email = user.getEmail();
-                    res_password = user.getPassword();
+                   // res_password = user.getPassword();
                     Log.d("レスポンス", res_id);
-                    System.out.println("id = " + user.getUid());
                     System.out.println("username = " + user.getUserName());
-                    System.out.println("token = " + user.getToken());
 
                 }
-
             }
             con.disconnect();
         } catch (MalformedURLException e) {
@@ -279,8 +239,8 @@ http://ash.jp/java/stream.htm
         }
 
         Log.d("会員登録", "Postしてみました");
-        // StatusCodeが２００番代であればOK
 
+        //memo: StatusCodeが２００番代であればOK
         if (status/100 == 2){
             result2 = "OK";
         } else {
@@ -352,6 +312,7 @@ http://ash.jp/java/stream.htm
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
 
+                String type = "POST";
                 email = mEmailEditText.getText().toString();
                 password = mPasswordEditText.getText().toString();
 
@@ -360,7 +321,7 @@ http://ash.jp/java/stream.htm
 
                     Log.d("ログイン","aaa");
 
-                    new loginAccount().execute();
+                    new loginAccount().execute(type, email , password);
 
                   //  login(email, password);
                 } else {
@@ -373,26 +334,6 @@ http://ash.jp/java/stream.htm
         });
     }
 
-/*
- * AsyncTask<型1, 型2,型3>
- *
- *   型1 … Activityからスレッド処理へ渡したい変数の型
- *          ※ Activityから呼び出すexecute()の引数の型
- *          ※ doInBackground()の引数の型
- *
- *   型2 … 進捗度合を表示する時に利用したい型
- *          ※ onProgressUpdate()の引数の型
- *
- *   型3 … バックグラウンド処理完了時に受け取る型
- *          ※ doInBackground()の戻り値の型
- *          ※ onPostExecute()の引数の型
- *
- *   ※ それぞれ不要な場合は、Voidを設定すれば良い
- */
-
-
-
-//    private void createAccount(String email, String password) {
     private class createAccount extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
@@ -419,80 +360,60 @@ http://ash.jp/java/stream.htm
 
         }
 
-        // onPostExecute displays the results of the AsyncTask.
+        @Override
+        protected void onPostExecute(String result) {
+            Log.d("Post","done");
+            View v = findViewById(android.R.id.content);
+
+            if(result.equals("OK")) {
+                saveUserdata();
+                Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
+                finish();
+            } else {
+                Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+            }
+        }
+    }
+
+
+    private class loginAccount extends AsyncTask<String, Void, String>{
+        @Override
+        protected String doInBackground(String... params){
+
+            String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_in.json";
+            user = new User();
+            user.setEmail(params[1]);
+            user.setPassword(params[2]);
+
+            Login(urlString,params);
+
+            if(result2.equals("OK")){
+                result = "OK";
+
+            } else {
+                result = "NG";
+            }
+            return result;
+        }
+
         @Override
         protected void onPostExecute(String result) {
             Log.d("Post","done");
 
-            Log.d("result", String.valueOf(result));
-            Log.d("resultUser", String.valueOf(user));
-            Log.d("resultUserToken", String.valueOf(user.getToken()));
-            Log.d("resultUserUsername", res_username);
-            if(result.equals("OK")) {
-
-                saveUserdata(user);
-                View v = findViewById(android.R.id.content);
-                Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
-                finish();
-
-            } else {
-                View v = findViewById(android.R.id.content);
-                Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
-
-            }
-
-
-        }
-    }
-
-
-    private class loginAccount extends AsyncTask<String, Void, Void>{
-        @Override
-        protected Void doInBackground(String... params){
-            user = new User();
-            user.setEmail(email);
-            user.setPassword(password);
-
-            Login(user);
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            Log.d("Post","done");
-
             //response();
-
-
-            saveUserdata(user);
             View v = findViewById(android.R.id.content);
-            Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
-
-            finish();
-
+            if(result.equals("OK")) {
+                saveUserdata();
+                Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
+                finish();
+            } else {
+                Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+            }
         }
     }
 
+    private void saveUserdata() {
 
-/*
-    private void login(String email, String password) {
-        // プログレスダイアログを表示する
-        mProgress.show();
-
-        // ログインする
-
-        mProgress.dismiss();
-
-    }
-*/
-    private void saveUserdata(User user) {
-
-
-        Log.d("saveUserdataまで届いている？", String.valueOf(user));
-        Log.d("saveUserdataまで届いている？", res_username);
-       // Integer loginkey = 1;
-        // Preferenceに保存する
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         sp.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences.Editor editor = sp.edit();
@@ -500,7 +421,7 @@ http://ash.jp/java/stream.htm
         editor.putString(Const.UnameKEY, res_username);
         editor.putString(Const.EmailKEY, res_email);
         editor.putString(Const.TokenKey, res_token);
-        editor.putString(Const.PassKey, res_password);
+      //  editor.putString(Const.PassKey, res_password);
 
 
         editor.commit();
