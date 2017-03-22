@@ -274,6 +274,13 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     }
 
 
+    @Override
+    protected void onStart(){
+        super.onStart();
+        //memo: 目的地一覧を取得
+       // Log.d("onstart","G");new getDestinations().execute();
+
+    }
 
 
     /* onCreate */
@@ -401,12 +408,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-
                         //Rails側削除
                         new deletedest().execute(String.valueOf(dest.getDestUrl()));
-
-
-                        Log.d("削除","削除ボタン");
 
                         //Realm側削除（これはやめたい）
                         RealmResults<Dest> results = mRealm.where(Dest.class).equalTo("id", dest.getId()).findAll();
@@ -414,10 +417,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                         mRealm.beginTransaction();
                         results.deleteAllFromRealm();
                         mRealm.commitTransaction();
-                        //
 
 
-                        reloadListView();
+                        //reloadListView();
                     }
                 });
                 // アラートダイアログのキャンセルボタンを設定します。nullは何もしない。
@@ -483,6 +485,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.d("変更","SettingActivityに書かれているLogです。");
+
+        //memo: 目的地一覧を取得
+       // new getDestinations().execute();
         reloadListView();
     }
 
@@ -508,6 +513,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 //deleteUserdata();
 
                 Snackbar.make(v, "削除しました", Snackbar.LENGTH_LONG).show();
+                //memo: 目的地一覧を取得
+                new getDestinations().execute();
                 //finish();
             } else {
                 Snackbar.make(v, "削除に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
