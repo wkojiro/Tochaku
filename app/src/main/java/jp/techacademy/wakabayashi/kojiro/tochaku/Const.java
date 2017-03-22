@@ -9,10 +9,10 @@ public class Const {
     public static final String UnameKEY = "username"; //Preferenceにusernameを保存する時のキー
     public static final String EmailKEY = "email"; // PreferenceにEmailを保存する時のキー
     public static final String TokenKey = "access_token"; // PreferenceにTokenを保存する時のキー
-    public static final String PassKey = "password";
+    public static final String PositionKey = "position_id";
     public static final String DestnameKEY = "destname";
     public static final String DestemailKEY = "destemail";
     public static final String DestaddressKEY = "destaddress";
-    public static final String DestLatitudeKEY = "destlatitude";
-    public static final String DestLongitudeKEY = "destlongitude";
+    public static final String DestLatitudeKEY = "latitude";
+    public static final String DestLongitudeKEY = "longitude";
 }

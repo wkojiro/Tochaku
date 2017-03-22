@@ -1,6 +1,10 @@
 package jp.techacademy.wakabayashi.kojiro.tochaku;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,18 +16,23 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
+
+
 /**
  * Created by wkojiro on 2017/03/15.
  */
 
 public class DestAdapter extends BaseAdapter{
+
+    private SettingActivity activity;
     private LayoutInflater mLayoutInflater;
     private ArrayList<Dest> mDestArrayList;
     Integer selected_position = -1;
 
 
-    public DestAdapter(Context context) {
+    public DestAdapter(Context context,SettingActivity activity) {
         mLayoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        this.activity = activity;
     }
 
     public void setDestArrayList(ArrayList<Dest> destArrayList){
@@ -46,27 +55,27 @@ public class DestAdapter extends BaseAdapter{
     }
 
     @Override
-    public View getView(final int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, final ViewGroup parent) {
         if(convertView == null){
             //convertView = mLayoutInflater.inflate(android.R.layout.simple_list_item_2, null);
 
             convertView = mLayoutInflater.inflate(R.layout.list_dests, parent ,false);
         }
 
-        TextView textView1 = (TextView) convertView.findViewById(R.id.nameTextView);
+        final TextView textView1 = (TextView) convertView.findViewById(R.id.nameTextView);
         TextView textView2 = (TextView) convertView.findViewById(R.id.addressTextView);
         TextView textView3 = (TextView) convertView.findViewById(R.id.emailTextView);
-        final CheckBox checkBox = (CheckBox) convertView.findViewById(R.id.checkBox);
+        CheckBox checkBox = (CheckBox) convertView.findViewById(R.id.checkBox);
 
 
 
-        textView1.setText(mDestArrayList.get(position).getDestName());
+        textView1.setText(mDestArrayList.get(position).getDestName() + (mDestArrayList.get(position).getPositionId()));
         textView2.setText(mDestArrayList.get(position).getDestAddress());
         textView3.setText(mDestArrayList.get(position).getDestEmail());
 
 
        // Log.d("mDestArrayList", String.valueOf(mDestArrayList.get(position).getDestName()));
-        Log.d("setChecked", String.valueOf(position));
+       // Log.d("2setChecked", String.valueOf(position));
 
         if (selected_position == position) {
             checkBox.setChecked(true);
@@ -83,7 +92,16 @@ public class DestAdapter extends BaseAdapter{
                 CheckBox cb = (CheckBox) v;
                 if(cb.isChecked() == true)
                 {
-                    selected_position = position;
+                    selected_position = position ;
+                    //Context context = parent.getContext();
+                  //  Snackbar.make(v, "目的地を設定しました", Snackbar.LENGTH_LONG).show();
+
+
+                   // String result3 = "OK";
+                    activity.addDestination(selected_position);
+
+
+                   // ((Activity)context).finish();
 
                 }
                 else
@@ -94,18 +112,14 @@ public class DestAdapter extends BaseAdapter{
             }
         });
 
-
-
-
       //  checkBox.setChecked(position == selected_position);
-        Log.d("selected_position最終", String.valueOf(selected_position));
-        Log.d("position最終", String.valueOf(position));
+     //   Log.d("3selected_position最終", String.valueOf(selected_position));
+     //   Log.d("4position最終", String.valueOf(position));
 
 
 
         return convertView;
     }
-
 
 
 

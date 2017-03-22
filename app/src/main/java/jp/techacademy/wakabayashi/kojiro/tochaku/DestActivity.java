@@ -36,67 +36,73 @@ import java.net.URL;
 
 import io.realm.Realm;
 
-public class DestActivity extends AppCompatActivity {
+public class DestActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener  {
 
-    private Dest mDest;
+    Dest mDest;
 
     //パーツの定義
     EditText mDestNameText;
     EditText mDestEmailText;
     EditText mDestAddressText;
-    Button mDestButton;
+    Button createButton;
 
     //パーツから受け取るためのパラメータ
     Dest dest;
     String destname;
     String destemail;
     String destaddress;
-    Integer railsid;
+    String desturl;
 
-    //Responseを受けるパラメータ
-    String resdestid;
-    String resdestname;
-    String resdestemail;
-    String resdestlatitude;
-    String resdestlongitude;
+
+
 
     ProgressDialog mProgress;
 
     //API通信のための会員Email及びToken(Preferenseから取得）
-    static String username;
-    static String email;
-    static String token;
+    String username;
+    String email;
+    String access_token;
 
-    //Responseを受け取るためのパラメータ
-    static Integer res_destid;
-    static String res_destname;
-    static String res_destemail;
-    static String res_destaddress;
-    static Float res_destlatitude;
-    static Float res_destlongitude;
-
+    //preferenceから取得用
+    String name;
+    String address;
+    String demail;
+    String dlatitude;
+    String dlongitude;
 
 
-    public String Edit(Dest mDest){
+
+    //Responseを受け取るためのパラメータ(必要なのか？）
+    Integer res_destid;
+    Integer res_destpositionid;
+    String res_destname;
+    String res_destemail;
+    String res_destaddress;
+    Float res_destlatitude;
+    Float res_destlongitude;
+
+    //memo: preferencceの書き換えを検知するListener
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.d("変更", "Destに書かれているLogです。");
+
+
+    }
+
+    public String Edit(String[] params){
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
         BufferedReader reader = null;
         StringBuilder jsonData = new StringBuilder();
-        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations/"+ railsid +".json?email="+ email +"&token="+ token +"";
+        String urlString = params[3] +"?email="+ email +"&token="+ access_token +"";
 
         InputStream inputStream = null;
         String result = "";
 
-
-        String name = mDest.getDestName();
-        String email = mDest.getDestEmail();
-        String address = mDest.getDestAddress();
-        // String password2 = user.getPassword();
-
         final String json =
                 "{" +
-                        "\"name\":\"" + name + "\"," +
-                        "\"email\":\"" + email + "\"," +
-                        "\"address\":\"" + address + "\"" +
+                        "\"destname\":\"" + params[0] + "\"," +
+                        "\"destemail\":\"" + params[1] + "\"," +
+                        "\"destaddress\":\"" + params[2] + "\"" +
                         "}";
 
         try {
@@ -109,10 +115,7 @@ public class DestActivity extends AppCompatActivity {
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-
-            // //////////////////////////////////////
             // リスエストの送信
-            // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
             // con.getResponseCode();
@@ -124,37 +127,13 @@ public class DestActivity extends AppCompatActivity {
             final int status = con.getResponseCode();
             Log.d("結果",String.valueOf(status));
             if(status == HttpURLConnection.HTTP_OK) {
-
-
-                //多分ここからResponseのための器をつくっている。
-                //戻り値の指定をしないと動かないのかな？
-
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
                 while (line != null) {
                     jsonData.append(line);
                     line = reader.readLine();
                 }
-
                 System.out.println(jsonData.toString());
-
-
-                // JSON to Java
-                Gson gson = new Gson();
-                mDest = gson.fromJson(jsonData.toString(), Dest.class);
-
-                if (mDest != null) {
-                    res_destid = mDest.getRailsId();
-                    res_destname = mDest.getDestName();
-                    res_destemail = mDest.getDestEmail();
-                    res_destaddress = mDest.getDestAddress();
-                    res_destlatitude = mDest.getDestLatitude();
-                    res_destlongitude = mDest.getDestLongitude();
-
-                    System.out.println("ID = " + mDest.getId());
-                    System.out.println("Rails = " + mDest.getRailsId());
-
-                }
             }
             con.disconnect();
         } catch (MalformedURLException e) {
@@ -167,25 +146,23 @@ public class DestActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-
-
-
         Log.d("目的地登録", "Postしてみました");
         // mProgress.dismiss();
 
         result = "OK";
-
 
         // return result
         return result;
     }
 
 
-    public static String Post(Dest dest){
+
+    /* Post ここでは目的地の住所などをPostするだけ。Responseは最悪無視しても問題ないはず。一覧は別画面でGetするから。*/
+    public String Post(Dest dest){
         HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
         BufferedReader reader = null;
         StringBuilder jsonData = new StringBuilder();
-        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ token +"";
+        String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ email +"&token="+ access_token +"";
 
         InputStream inputStream = null;
         String result = "";
@@ -198,9 +175,9 @@ public class DestActivity extends AppCompatActivity {
 
         final String json =
                 "{" +
-                        "\"name\":\"" + name + "\"," +
-                        "\"email\":\"" + email + "\"," +
-                        "\"address\":\"" + address + "\"" +
+                        "\"destname\":\"" + name + "\"," +
+                        "\"destemail\":\"" + email + "\"," +
+                        "\"destaddress\":\"" + address + "\"" +
                 "}";
 
         try {
@@ -213,14 +190,10 @@ public class DestActivity extends AppCompatActivity {
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-
-            // //////////////////////////////////////
             // リスエストの送信
-            // //////////////////////////////////////
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
             // con.getResponseCode();
-
 
             PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
             ps.print(json);// JsonをPOSTする
@@ -228,7 +201,6 @@ public class DestActivity extends AppCompatActivity {
             final int status = con.getResponseCode();
             Log.d("結果",String.valueOf(status));
             if(status == HttpURLConnection.HTTP_OK) {
-
 
                 //多分ここからResponseのための器をつくっている。
                 //戻り値の指定をしないと動かないのかな？
@@ -242,13 +214,13 @@ public class DestActivity extends AppCompatActivity {
 
                 System.out.println(jsonData.toString());
 
-
                 // JSON to Java
                 Gson gson = new Gson();
                 dest = gson.fromJson(jsonData.toString(), Dest.class);
 
                 if (dest != null) {
-                    res_destid = dest.getRailsId();
+                    res_destid = dest.getId();
+                    res_destpositionid = dest.getPositionId();
                     res_destname = dest.getDestName();
                     res_destemail = dest.getDestEmail();
                     res_destaddress = dest.getDestAddress();
@@ -256,7 +228,7 @@ public class DestActivity extends AppCompatActivity {
                     res_destlongitude = dest.getDestLongitude();
 
                     System.out.println("ID = " + res_destid);
-                    System.out.println("railsID = " + dest.getRailsId());
+                    System.out.println("positionID = " + dest.getPositionId());
 
                 }
             }
@@ -271,13 +243,9 @@ public class DestActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-
-
-        Log.d("目的地登録", "Postしてみました");
         // mProgress.dismiss();
 
         result = "OK";
-
 
         // return result
         return result;
@@ -289,54 +257,66 @@ public class DestActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dest);
 
+        //memo: 保存されているユーザー情報をあらかじめ取得しておく。API用
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        //this とはおそらくthis activityのこと ここはActivityの中だからthisでもいける。
-        // getApplicationContext();　とも書ける。
-
+        sp.registerOnSharedPreferenceChangeListener(this);
         username = sp.getString(Const.UnameKEY, "");
         email = sp.getString(Const.EmailKEY, "");
-        token = sp.getString(Const.TokenKey, "");
+        access_token = sp.getString(Const.TokenKey, "");
+
+
+        //memo: 保存されている目的地情報をあらかじめ取得しておく。（用途：　　　）
+        name = sp.getString(Const.DestnameKEY, "");
+        address = sp.getString(Const.DestaddressKEY, "");
+        demail = sp.getString(Const.DestemailKEY,"");
+        dlatitude = sp.getString(Const.DestLatitudeKEY,"");
+        dlongitude = sp.getString(Const.DestLongitudeKEY,"");
+
         Log.d("user name",String.valueOf(username));
         Log.d("Email",String.valueOf(username));
-        Log.d("トークン",String.valueOf(token));
+        Log.d("トークン",String.valueOf(access_token));
+        Log.d("name",String.valueOf(name));
+        Log.d("address",String.valueOf(address));
+        Log.d("dlatitude",String.valueOf(dlatitude));
 
-
+        //memo: SettingActivityからもらってきたdestID情報（用途：目的地編集用）
         Intent intent = getIntent();
         int destId = intent.getIntExtra(SettingActivity.EXTRA_DEST, -1);
         Log.d("destId",String.valueOf(destId));
 
+        //memo: Realmを用意（用途：ここでは目的地編集用及び新規登録用）
         Realm realm = Realm.getDefaultInstance();
         mDest = realm.where(Dest.class).equalTo("id", destId).findFirst();
         realm.close();
 
+
+        //memo: 該当のIDがない場合（新規登録の場合）
         if (mDest == null) {
             mDestNameText = (EditText) findViewById(R.id.destNameText);
             mDestEmailText = (EditText) findViewById(R.id.destEmailText);
             mDestAddressText = (EditText) findViewById(R.id.destAddressText);
-        } else {
+        } else
+        //memo: IDがある場合（新規登録の場合）
+            {
             mDestNameText = (EditText) findViewById(R.id.destNameText);
             mDestEmailText = (EditText) findViewById(R.id.destEmailText);
             mDestAddressText = (EditText) findViewById(R.id.destAddressText);
 
-
-
-            railsid = mDest.getRailsId();
+         //memo: まず今ある情報を表示しておく。（この時点でrailsidは必要なし）
             mDestNameText.setText(mDest.getDestName());
             mDestEmailText.setText(mDest.getDestEmail());
             mDestAddressText.setText(mDest.getDestAddress());
-
-
-
         }
 
 
-
-        Button createButton = (Button) findViewById(R.id.createButton);
+        createButton = (Button) findViewById(R.id.createButton);
         createButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 InputMethodManager im = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
                 im.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
+
 
                 if(mDest == null) {
                 //新規登録
@@ -344,11 +324,8 @@ public class DestActivity extends AppCompatActivity {
                     destemail = mDestEmailText.getText().toString();
                     destaddress = mDestAddressText.getText().toString();
 
-
-                    Log.d("ユーザー登録", "ddd");
                     if (destname.length() != 0 && destemail.length() != 0 && destaddress.length() != 0) {
 
-                        Log.d("目的地登録", "ddd");
 
                         new DestActivity.createDestination().execute();
 
@@ -360,33 +337,16 @@ public class DestActivity extends AppCompatActivity {
                     }
                 } else {
                 //更新登録
+                    Log.d("更新登録", "ddd");
 
-                    railsid = mDest.getRailsId();
                     destname = mDestNameText.getText().toString();
                     destemail = mDestEmailText.getText().toString();
                     destaddress = mDestAddressText.getText().toString();
-
-
-                    Log.d("ユーザー登録", "ddd");
-                    if (destname.length() != 0 && destemail.length() != 0 && destaddress.length() != 0) {
-
-                        Log.d("目的地登録", "ddd");
-
-                        new DestActivity.editDestination().execute();
-
-                    } else {
-                        Log.d("目的地登録エラー", "ddd");
-                        // エラーを表示する
-                        Snackbar.make(v, "目的地の情報が正しく入力されていません", Snackbar.LENGTH_LONG).show();
-
-                    }
-
-
-
-
+                    desturl = mDest.getDestUrl();
+                    Log.d("更新登録", desturl);
+                    new DestActivity.editDestination().execute(destname,destemail,destaddress,desturl);
 
                 }
-
             }
 
         });
@@ -396,13 +356,9 @@ public class DestActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(String... params) {
 
-            mDest.setDestName(destname);
-            mDest.setDestEmail(destemail);
-            mDest.setDestAddress(destaddress);
-
-
-            Edit(mDest);
-            Log.d("dest",String.valueOf(mDest));
+            //Log.d("doinbackground",String.valueOf(mDest.getDestUrl()));
+            Edit(params);
+            //Log.d("dest",String.valueOf(mDest));
             return null;
 
         }
@@ -410,23 +366,12 @@ public class DestActivity extends AppCompatActivity {
         protected void onPostExecute(Void result) {
             Log.d("","done");
 
-            //response();
-
-
-
             View v = findViewById(android.R.id.content);
             Snackbar.make(v, "目的地情報を更新しました。", Snackbar.LENGTH_LONG).show();
 
             finish();
         }
-
-
-
     }
-
-
-
-
 
     private class createDestination extends AsyncTask<String, Void, Void>{
         @Override
@@ -448,17 +393,10 @@ public class DestActivity extends AppCompatActivity {
         protected void onPostExecute(Void result) {
             Log.d("Post","done");
 
-            //response();
-
-
-
             View v = findViewById(android.R.id.content);
             Snackbar.make(v, "目的地を追加しました。", Snackbar.LENGTH_LONG).show();
 
             finish();
         }
-
-
     }
-
 }

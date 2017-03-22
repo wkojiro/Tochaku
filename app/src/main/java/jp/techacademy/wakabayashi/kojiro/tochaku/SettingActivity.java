@@ -9,11 +9,13 @@ package jp.techacademy.wakabayashi.kojiro.tochaku;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,6 +29,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -67,18 +70,24 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     Button mLogoutButton;
 
 
+    public Dest destRealm;
     private Realm mRealm;
     private RealmResults<Dest> mDestRealmResults;
     private RealmChangeListener mRealmListener = new RealmChangeListener() {
         @Override
         public void onChange(Object element) {
+
+            //memo: 目的地一覧を取得
+            Log.d("Reload","reload");
             reloadListView();
         }
     };
 
+
     //リストView
     private ListView mListView;
     //GetのResponseを受けるパラメータ
+    private ArrayList<Dest> mDestArrayList;
     private DestAdapter mDestAdapter;
 
     ProgressDialog mProgress;
@@ -89,33 +98,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     String apitoken;
 
 
-
-
-    Dest dest;
-    int railsid;
-    String name;
-    String email;
-    String address;
-    float latitude;
-    float longitude;
-    String url;
-
-
-
-
     SharedPreferences sp;
-
-
-    //Responseを受け取るためのパラメータ
-    Dest res_dest;
-    Integer res_destid;
-    String res_destname;
-    String res_destemail;
-    String res_destaddress;
-    Float res_destlatitude;
-    Float res_destlongitude;
-    String res_desturl;
-
 
     //API用変数
     HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
@@ -124,7 +107,49 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     InputStream inputStream = null;
     String result = "";
     String result2 = "";
+    int selected_position = 0;
     int status = 0;
+
+
+
+    public String Deletedest(String[] params){
+
+
+        String urlString =  params[0]+"?email="+ apiemail +"&token="+ apitoken +"";
+
+        try{
+            URL url = new URL(urlString);
+            con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
+            con.setRequestMethod("DELETE");
+            con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
+            con.setRequestProperty("Accept-Language", "jp");
+            con.setDoOutput(false); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
+            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+
+
+
+           // OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+
+            // con.getResponseCode();
+
+
+            status = con.getResponseCode();
+            Log.d("レスポンス",String.valueOf(status));
+
+        }catch (ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (status/100 == 2){
+            result2 = "OK";
+        } else {
+            result2 = "NG";
+        }
+        return result2;
+    }
+
 
     public String Deletelogout(){
 
@@ -180,6 +205,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     }
 
 
+    //memo: GetDestList
     public String GetdestList(){
 
         String urlString = "https://rails5api-wkojiro1.c9users.io/destinations.json?email="+ apiemail +"&token="+ apitoken +"";
@@ -198,7 +224,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             con.connect();
 
             status = con.getResponseCode();
-            Log.d("結果",String.valueOf(status));
+            Log.d("5結果",String.valueOf(status));
             if(status/100 == 2){
 
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
@@ -209,21 +235,20 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                     line = reader.readLine();
                 }
 
-                System.out.println(jsonData.toString());
+               // System.out.println(jsonData.toString());
 
                 JSONArray jsonarray = new JSONArray(jsonData.toString());
                 for (int i = 0; i < jsonarray.length(); i++) {
                     JSONObject jsonobject = jsonarray.getJSONObject(i);
-                    res_destname = jsonobject.getString("name");
-                    res_destemail = jsonobject.getString("email");
-                    res_destaddress = jsonobject.getString("address");
-                    res_desturl = jsonobject.getString("url");
-                    Log.d("res_destname",String.valueOf(res_destname));
+
+
                 }
+
+              //  Log.d("6jsonArray",String.valueOf(jsonarray));
 
                 Realm realm = Realm.getDefaultInstance();
                 realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(Dest.class,jsonarray);
+                realm.createOrUpdateAllFromJson(Dest.class,jsonarray); //Realm にそのまま吸い込まれた
                 realm.commitTransaction();
 
                 realm.close();
@@ -240,9 +265,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-
         if (status/100 == 2){
             result2 = "OK";
         } else {
@@ -250,6 +272,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         }
         return result2;
     }
+
+
 
 
     /* onCreate */
@@ -266,16 +290,13 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         apiemail = sp.getString(Const.EmailKEY, "");
         apitoken = sp.getString(Const.TokenKey, "");
 
-        //memo: 目的地一覧を取得
-        new getDestinations().execute();
-
+        //memo: Fixed features
         setTitle("設定画面");
         mUserNameText = (TextView) findViewById(R.id.userNameText);
         mUserNameText.setText(apiusername);
         mEmailText = (TextView) findViewById(R.id.EmailText);
         mEmailText.setText(apiemail);
         mDestCountText = (TextView) findViewById(R.id.DestsText);
-
 
         mProfileButton = (Button) findViewById(R.id.ProfileButton);
         mProfileButton.setOnClickListener(new View.OnClickListener() {
@@ -309,30 +330,50 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         });
 
 
-        //memo: Realmの設定
-        mRealm = Realm.getDefaultInstance();
-        mDestRealmResults = mRealm.where(Dest.class).findAll();
-        mRealm.addChangeListener(mRealmListener);
 
-        // ListViewの設定
-        mDestAdapter = new DestAdapter(SettingActivity.this);
+        //memo: 目的地一覧を取得
+        new getDestinations().execute();
+
+        //memo: 現在保存されているRealmの中身を取得＆並べ替え
+        mRealm = Realm.getDefaultInstance();
+        mDestRealmResults = mRealm.where(Dest.class).findAllSorted("id",Sort.ASCENDING);
+     //   mDestRealmResults.sort("id",Sort.ASCENDING);
+
+
+        //memo: リスナーの設定
+        mRealm.addChangeListener(mRealmListener);
+        Log.d("1.リザルト",String.valueOf(mDestRealmResults.size()));
+
+
+        // ListViewの設定（器のみ）
+        mDestAdapter = new DestAdapter(this,this);
         mListView = (ListView) findViewById(R.id.listView);
+
+        //memo: 機能していない？
+        mDestAdapter.notifyDataSetChanged();
+
+
+        reloadListView();
 
         // ListViewをタップしたときの処理
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // ①入力・編集する画面に遷移させる ②トチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
-                Log.d("リストビュー","タップ");
+
                 Dest dest = (Dest) parent.getAdapter().getItem(position);
 
+
+                Log.d("PositionID",String.valueOf(dest.getPositionId()));
+                Log.d("id",String.valueOf(dest.getId()));
+                Log.d("name",String.valueOf(dest.getDestName()));
+                Log.d("Url",String.valueOf(dest.getDestUrl()));
+
+
+                //memo: destのIDを送る
                 Intent intent = new Intent(SettingActivity.this, DestActivity.class);
                 intent.putExtra(EXTRA_DEST, dest.getId());
                 startActivity(intent);
-
-
-
-
 
             }
         });
@@ -343,25 +384,70 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
 
                 // タスクを削除する
+                Log.d("タスク","削除");
+             //   new delete().execute();
+
+                final Dest dest = (Dest) parent.getAdapter().getItem(position);
+                // ダイアログを表示する
+
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(SettingActivity.this);
+
+                builder.setTitle("削除");
+                builder.setMessage(dest.getDestName() + "を削除しますか");
+
+
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+
+                        //Rails側削除
+                        new deletedest().execute(String.valueOf(dest.getDestUrl()));
+
+
+                        Log.d("削除","削除ボタン");
+
+                        //Realm側削除（これはやめたい）
+                        RealmResults<Dest> results = mRealm.where(Dest.class).equalTo("id", dest.getId()).findAll();
+
+                        mRealm.beginTransaction();
+                        results.deleteAllFromRealm();
+                        mRealm.commitTransaction();
+                        //
+
+
+                        reloadListView();
+                    }
+                });
+                // アラートダイアログのキャンセルボタンを設定します。nullは何もしない。
+                builder.setNegativeButton("CANCEL", null);
+
+                //AlertDialog dialog = builder.create();
+
+                // アラートダイアログを表示します
+                builder.show();
+
 
                 return true;
             }
         });
-
-
-
-
-
-        if (mDestRealmResults.size() == 0) {
-            // アプリ起動時にタスクの数が0であった場合は表示テスト用のタスクを作成する
-            addDestForTest();
-        }
-        reloadListView();
     }
+
+
     private void reloadListView() {
 
+        //memo: 現在保存されているRealmの中身を取得＆並べ替え
+        mRealm = Realm.getDefaultInstance();
+        mDestRealmResults = mRealm.where(Dest.class).findAllSorted("id",Sort.ASCENDING);
+        Log.d("ReloadView.リザルト",String.valueOf(mDestRealmResults.size()));
+       // mDestRealmResults.sort("id",Sort.DESCENDING);
+       // Log.d("reloadlistview", String.valueOf(mDestRealmResults));
 
-        ArrayList<Dest> destArrayList = new ArrayList<>();
+
+        //memo: 仮説：現状だとmDestRealmResultsが変わったあとにListViewに表示している。
+
+        mDestArrayList = new ArrayList<>();
 
         for (int i = 0; i < mDestRealmResults.size(); i++){
             if(!mDestRealmResults.get(i).isValid()) continue;
@@ -369,7 +455,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             Dest dest = new Dest();
 
             dest.setId(mDestRealmResults.get(i).getId());
-            dest.setRailsId(mDestRealmResults.get(i).getRailsId());
+            dest.setPositionId(mDestRealmResults.get(i).getPositionId());
             dest.setDestName(mDestRealmResults.get(i).getDestName());
             dest.setDestEmail(mDestRealmResults.get(i).getDestEmail());
             dest.setDestAddress(mDestRealmResults.get(i).getDestAddress());
@@ -377,10 +463,10 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             dest.setDestLongitude(mDestRealmResults.get(i).getDestLongitude());
             dest.setDestUrl(mDestRealmResults.get(i).getDestUrl());
 
-            destArrayList.add(dest);
+            mDestArrayList.add(dest);
         }
 
-        mDestAdapter.setDestArrayList(destArrayList);
+        mDestAdapter.setDestArrayList(mDestArrayList);
         mListView.setAdapter(mDestAdapter);
         mDestAdapter.notifyDataSetChanged();
 
@@ -393,24 +479,41 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mRealm.close();
     }
 
-    private void addDestForTest() {
-        Dest dest = new Dest();
-        dest.setDestName("東京タワー");
-        dest.setDestEmail("wkojiro22@gmail.com");
-        dest.setDestAddress("東京都港区芝公園４丁目２−８");
-        dest.setDestUrl("http://www.yahoo.co,jp");
-        dest.setDestLatitude(35.658581f);
-        dest.setDestLongitude(139.745433f);
-        dest.setRailsId(0);
-        dest.setId(0);
-        mRealm.beginTransaction();
-        mRealm.copyToRealmOrUpdate(dest);
-        mRealm.commitTransaction();
-    }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.d("変更","SettingActivityに書かれているLogです。");
+        reloadListView();
+    }
+
+
+    private class deletedest extends AsyncTask<String, Void, String>{
+        @Override
+        protected String doInBackground(String... params){
+
+            Deletedest(params);
+            if(result2.equals("OK")){
+                result = "OK";
+
+            } else {
+                result = "NG";
+            }
+            return result;
+
+        }
+        @Override
+        protected void onPostExecute(String result) {
+            View v = findViewById(android.R.id.content);
+            if(result.equals("OK")) {
+                //deleteUserdata();
+
+                Snackbar.make(v, "削除しました", Snackbar.LENGTH_LONG).show();
+                //finish();
+            } else {
+                Snackbar.make(v, "削除に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+            }
+
+        }
     }
 
 
@@ -463,7 +566,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mRealm.deleteAll();
         mRealm.commitTransaction();
 
-
     }
 
 
@@ -473,7 +575,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         protected  String doInBackground(String... params) {
 
 
-
             GetdestList();
             if(result2.equals("OK")){
                 result = "OK";
@@ -481,7 +582,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             } else {
                 result = "NG";
             }
-
 
             return result;
 
@@ -493,32 +593,67 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             View v = findViewById(android.R.id.content);
             if(result.equals("OK")) {
                 //saveUserdata();
-                Snackbar.make(v, "目的地の一覧を取得しました", Snackbar.LENGTH_LONG).show();
-
+                if(mDestRealmResults.size() == 0){
+                    Snackbar.make(v, "目的地が登録されていません。", Snackbar.LENGTH_LONG).show();
+                }else{
+                    Snackbar.make(v, "目的地の一覧を取得しました", Snackbar.LENGTH_LONG).show();
+                }
             } else {
                 Snackbar.make(v, "目的地の一覧取得に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
             }
         }
     }
 
+    public void addDestination(Integer selected_position) {
+        Log.d("selected_position",String.valueOf(selected_position));
 
+
+
+
+/* realmの情報から取得 */
+
+      //  final Dest dest = (Dest) parent.getAdapter().getItem(selected_position);
+
+        Realm realm = Realm.getDefaultInstance();
+
+        //memo: destIdで検索して当該のデータを取得 positionは０はじまり、position_idは１はじまりだから＋１する。
+        destRealm = realm.where(Dest.class).equalTo("position_id", selected_position +1 ).findFirst();
+        realm.close();
+
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        //sp.registerOnSharedPreferenceChangeListener(this);
+        sp.edit().remove("destname").remove("destaddress").remove("destemail").remove("latitude").remove("longitude").commit();
+
+
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putString(Const.DestnameKEY , destRealm.getDestName());
+        editor.putString(Const.DestaddressKEY, destRealm.getDestAddress());
+        editor.putString(Const.DestemailKEY, destRealm.getDestEmail());
+        editor.putString(Const.DestLatitudeKEY, String.valueOf(destRealm.getDestLatitude()));
+        editor.putString(Const.DestLongitudeKEY, String.valueOf(destRealm.getDestLongitude()));
+        //  editor.putString(Const.PassKey, res_password);
+
+        editor.commit();
+
+        Toast.makeText(this, "目的地を設定しました", Toast.LENGTH_LONG).show();
+       // finish();
+
+    }
 
     //memo: 右上のメニューボタン
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
+
         getMenuInflater().inflate(R.menu.option_menu2, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.item2) {
             Intent intent = new Intent(getApplicationContext(), DestActivity.class);
             startActivity(intent);

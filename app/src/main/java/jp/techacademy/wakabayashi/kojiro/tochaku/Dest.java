@@ -20,17 +20,18 @@ JSONObjectはRealmObjectを真似てつけてみている。これでどれだ�
  */
 public class Dest extends RealmObject implements Serializable {
 
-    private int railsid;
-    private String name;
-    private String email;
-    private String address;
+    // id をプライマリーキーとして設定(Jsonで取得したデータをRealmで内部に保存する。）
+    @PrimaryKey
+    private int id;
+    private int position_id;
+    private String destname;
+    private String destemail;
+    private String destaddress;
     private float latitude;
     private float longitude;
     private String url;
 
-    // id をプライマリーキーとして設定(Jsonで取得したデータをRealmで内部に保存する。）
-    @PrimaryKey
-    private int id;
+
     public int getId() {
         return id;
     }
@@ -40,36 +41,36 @@ public class Dest extends RealmObject implements Serializable {
     }
 
 
-    public int getRailsId(){
-        return railsid; //Rails側のid
+    public int getPositionId(){
+        return position_id;
     }
 
-    public void setRailsId(int id){
-        this.railsid = railsid;
+    public void setPositionId(int position_id){
+        this.position_id = position_id;
     }
 
     public String getDestName(){
-        return name;
+        return destname;
     }
 
-    public void setDestName(String name) {
-        this.name = name;
+    public void setDestName(String destname) {
+        this.destname = destname;
     }
 
 
     public String getDestEmail(){
-        return  email;
+        return  destemail;
     }
 
-    public void setDestEmail(String email) {
-        this.email = email;
+    public void setDestEmail(String destemail) {
+        this.destemail = destemail;
     }
 
     public String getDestAddress(){
-        return address;
+        return destaddress;
     }
-    public void setDestAddress(String address) {
-        this.address = address;
+    public void setDestAddress(String destaddress) {
+        this.destaddress = destaddress;
     }
 
     public Float getDestLatitude(){
@@ -84,7 +85,7 @@ public class Dest extends RealmObject implements Serializable {
     }
 
     public void setDestLongitude(Float longitude){
-        this.latitude = longitude;
+        this.longitude = longitude;
     }
 
     public String getDestUrl(){
@@ -94,17 +95,7 @@ public class Dest extends RealmObject implements Serializable {
         this.url = url;
     }
 
-    /*
-    public Dest(String destid, String destname, String destemail, String destaddress, float destlatitude, float destlongitude) {
-        mDestid = destid;
-        mDestname = destname;
-        mDestemail = destemail;
-        mDestaddress = destaddress;
-        mDestlatitude = destlatitude;
-        mDestlongitude = destlongitude;
 
-
-    }*/
 
 
 }

@@ -57,11 +57,12 @@ import static java.sql.DriverManager.println;
 public class LoginActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
 
+    //memo: パーツの定義
     EditText mEmailEditText;
     EditText mPasswordEditText;
     EditText mUserNameEditText;
 
-    //Postする変数
+    //memo: パーツ受け取り用
     User user;
     String username;
     String email;
@@ -130,6 +131,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
                 // JSON to Java
                 Gson gson = new Gson();
+
                 user = gson.fromJson(jsonData.toString(), User.class);
 
                 if (user != null) {
@@ -155,7 +157,6 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
             e.printStackTrace();
         }
 
-        Log.d("会員登録", "Postしてみました");
         // mProgress.dismiss();
         //memo: StatusCodeが２００番代であればOK
         if (status/100 == 2){
@@ -190,7 +191,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
             con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
             con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
-            // リスエストの送信
+            //
             OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
             con.connect();
 
@@ -214,8 +215,11 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
                 // JSON to Java
                 Gson gson = new Gson();
+
+                //memo: JsonDataからユーザーインスタンスに格納
                 user = gson.fromJson(jsonData.toString(), User.class);
 
+                //memo: 上でResponseから取得したUserを今度はPreferenceに保存する為に変数に格納
                 if (user != null) {
                     res_id = user.getUid();
                     res_token = user.getToken();
@@ -224,6 +228,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
                    // res_password = user.getPassword();
                     Log.d("レスポンス", res_id);
                     System.out.println("username = " + user.getUserName());
+                    System.out.println("username = " + res_username);
 
                 }
             }
@@ -238,7 +243,6 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
             e.printStackTrace();
         }
 
-        Log.d("会員登録", "Postしてみました");
 
         //memo: StatusCodeが２００番代であればOK
         if (status/100 == 2){
@@ -317,17 +321,12 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
                 password = mPasswordEditText.getText().toString();
 
                 if (email.length() != 0 && password.length() >= 6) {
-                    // フラグを落としておく
-
-                    Log.d("ログイン","aaa");
 
                     new loginAccount().execute(type, email , password);
 
                   //  login(email, password);
                 } else {
 
-                    Log.d("ログイン","aaa");
-                    // エラーを表示する
                     Snackbar.make(v, "正しく入力してください", Snackbar.LENGTH_LONG).show();
                 }
             }
@@ -348,7 +347,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
             Post(urlString,params);
 
-            Log.d("result", String.valueOf(result));
+           // Log.d("result", String.valueOf(result));
 
             if(result2.equals("OK")){
                 result = "OK";
@@ -362,7 +361,6 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
         @Override
         protected void onPostExecute(String result) {
-            Log.d("Post","done");
             View v = findViewById(android.R.id.content);
 
             if(result.equals("OK")) {
@@ -398,7 +396,6 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
         @Override
         protected void onPostExecute(String result) {
-            Log.d("Post","done");
 
             //response();
             View v = findViewById(android.R.id.content);
@@ -412,7 +409,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
         }
     }
 
-    private void saveUserdata() {
+    public void saveUserdata() {
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         sp.registerOnSharedPreferenceChangeListener(this);

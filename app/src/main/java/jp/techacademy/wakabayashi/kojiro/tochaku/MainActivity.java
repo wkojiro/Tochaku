@@ -17,12 +17,22 @@ import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    //String user;
+    SharedPreferences sp;
+    TextView mUsername;
+
+
+    //memo: preferenceから現在登録されているユーザーを受け取る為の変数
     String username;
     String email;
     String access_token;
-    SharedPreferences sp;
-    TextView mUsername;
+
+
+    //memo: preferenceから現在登録されている目的地を受け取る為の変数
+    String address;
+    String latitude;
+    String longitude;
+    String destname;
+    String destemail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +52,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         email = sp.getString(Const.EmailKEY, "");
         access_token = sp.getString(Const.TokenKey, "");
         Log.d("Loginユーザー名",String.valueOf(username));
+
+
+        //memo: 現在設定されている目的地の取得
+
+        destname = sp.getString(Const.DestnameKEY,"");
+        address = sp.getString(Const.DestaddressKEY,"");
+        destemail = sp.getString(Const.DestemailKEY,"");
+        latitude = sp.getString(Const.DestLatitudeKEY,"");
+        longitude = sp.getString(Const.DestLongitudeKEY,"");
+        Log.d("目的地名",String.valueOf(destname));
+        Log.d("目的地住所",String.valueOf(address));
+        Log.d("緯度",String.valueOf(latitude));
+        Log.d("経度",String.valueOf(longitude));
 
         //memo: 開発用。ログインしているかどうかを判別しやすくするため。後で消す
         mUsername = (TextView) findViewById(R.id.username);
@@ -66,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
 
+    //memo: preferencceの書き換えを検知するListener
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.d("変更","MainActivityに書かれているLogです。");
@@ -73,6 +97,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         username = sp.getString(Const.UnameKEY, "");
         email = sp.getString(Const.EmailKEY, "");
         access_token = sp.getString(Const.TokenKey, "");
+        //memo: 現在設定されている目的地の取得
+
+        destname = sp.getString(Const.DestnameKEY,"");
+        address = sp.getString(Const.DestaddressKEY,"");
+        destemail = sp.getString(Const.DestemailKEY,"");
+        latitude = sp.getString(Const.DestLatitudeKEY,"");
+        longitude = sp.getString(Const.DestLongitudeKEY,"");
+        Log.d("目的地名",String.valueOf(destname));
+        Log.d("目的地住所",String.valueOf(address));
+        Log.d("目的地メールアドレス",String.valueOf(destemail));
+        Log.d("緯度",String.valueOf(latitude));
+        Log.d("経度",String.valueOf(longitude));
 
         //memo: 開発用。ログインしているかどうかを判別しやすくするため。後で消す
         mUsername = (TextView) findViewById(R.id.username);
