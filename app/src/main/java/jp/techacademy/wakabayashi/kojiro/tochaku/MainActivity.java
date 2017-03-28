@@ -42,26 +42,13 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 //memo: 現在位置系追加　http://wisteriahill.sakura.ne.jp/CMS/WordPress/2016/08/04/google-maps-android-api-v2-lat-lon-alt/
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationManager;
+
 import android.widget.Toast;
 
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.model.CameraPosition;
 
 import com.google.android.gms.common.ConnectionResult;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-//import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
-//import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+
 
 /*
 https://akira-watson.com/android/google-map-zoom-addmarker.html
@@ -69,8 +56,8 @@ https://akira-watson.com/android/google-map-zoom-addmarker.html
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener, OnMapReadyCallback,
-        LocationListener,GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationSource,
-        GoogleMap.OnMyLocationButtonClickListener {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+        {
 
   //  private LocationManager locationManager;
     private final int REQUEST_PERMISSION = 10;
@@ -103,21 +90,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     //memo: 現在位置関連 LocationClient の代わりにGoogleApiClientを使います
     GoogleApiClient mGoogleApiClient;
-    LocationRequest locationRequest;
 
-    private LocationSource.OnLocationChangedListener onLocationChangedListener = null;
-    private int priority[] = {LocationRequest.PRIORITY_HIGH_ACCURACY, LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
-            LocationRequest.PRIORITY_LOW_POWER, LocationRequest.PRIORITY_NO_POWER};
-    private int locationPriority;
-
-    //memo: 現在位置関連 20170327 added by wkojiro i.e https://akira-watson.com/android/fusedlocationproviderapi.html
-    
-    private TextView textView;
-    private String textLog = "start ";
-    private boolean mResolvingError = false; //?
-    private FusedLocationProviderApi fusedLocationProviderApi; //?
-    private Location location; //?
-    private long lastLocationTime = 0; //?
 
 
     @Override
@@ -126,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         setContentView(R.layout.activity_main);
 
         Log.d("MainActivity", "onCreate()");
-        textView = (TextView) findViewById(R.id.text_view);
+    //    textView = (TextView) findViewById(R.id.text_view);
 
         if(Build.VERSION.SDK_INT >= 23){
             checkPermission();
@@ -197,39 +170,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
            Log.d("許可","Granted");
 
 
-            // LocationRequest を生成して精度、インターバルを設定
-            locationRequest = LocationRequest.create();
-
-            // 測位の精度、消費電力の優先度
-            locationPriority = priority[1];
-
-            if(locationPriority == priority[0]){
-                // 位置情報の精度を優先する場合
-                locationRequest.setPriority(locationPriority);
-                locationRequest.setInterval(5000); //5 secondsミリ秒単位で位置情報更新の間隔を設定します。
-                locationRequest.setFastestInterval(16);  //16ms = 60fps ミリ秒単位で位置情報更新の正確な間隔を設定します。
-            }
-            else if(locationPriority == priority[1]){
-                // 消費電力を考慮する場合
-                locationRequest.setPriority(locationPriority);
-                locationRequest.setInterval(60000); //60秒（１分毎）
-                locationRequest.setFastestInterval(16);
-
-            }
-            else if(locationPriority == priority[2]){
-                // "city" level accuracy
-                locationRequest.setPriority(locationPriority);
-            }
-            else{
-                // 外部からのトリガーでの測位のみ
-                locationRequest.setPriority(locationPriority);
-            }
-
-            fusedLocationProviderApi = LocationServices.FusedLocationApi;
-            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+            mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
             mapFragment.getMapAsync(this);
 
+            //memo: 位置情報取得のために必要GoogleApiClient.ConnectionCallbacks　GoogleApiClient.OnConnectionFailedListener
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addApi(LocationServices.API)
                     .addConnectionCallbacks(this)
@@ -238,15 +183,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             mGoogleApiClient.connect();
 
-            textLog += "onCreate() \n";
-            textView.setText(textLog);
+
 
             // 測位開始
             Button buttonStart = (Button)findViewById(R.id.button_start);
             buttonStart.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    startFusedLocation();
+
                 }
             });
 
@@ -255,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             buttonStop.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    stopFusedLocation();
+
                 }
             });
 
@@ -265,30 +209,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             requestLocationPermission();
         }
     }
-    private void startFusedLocation(){
-        Log.d("MainActivity", "onStart");
 
-        // Connect the client.
-        if (!mResolvingError) {
-            // Connect the client.
-            mGoogleApiClient.connect();
-
-            textLog += "onStart(), connect() \n";
-            textView.setText(textLog);
-        } else {
-            textLog += "onStart(), mResolvingError \n";
-            textView.setText(textLog);
-        }
-
-    }
-
-    private void stopFusedLocation(){
-        // Disconnecting the client invalidates it.
-        mGoogleApiClient.disconnect();
-        textLog += "onStop()\n";
-        textView.setText(textLog);
-
-    }
 
 
     // 許可を求める
@@ -314,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // 使用が許可された
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d("許可","Granted");
-               // return;
+                return;
 
             } else {
                 // それでも拒否された時の対応
@@ -328,7 +249,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     protected void onResume() {
         super.onResume();
-        //mGoogleApiClient.connect();
+        mGoogleApiClient.connect();
 
 
     }
@@ -337,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onPause() {
         super.onPause();
-       // mGoogleApiClient.disconnect();
+       mGoogleApiClient.disconnect();
     }
 
 
@@ -352,9 +273,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
             mMap = googleMap;
             // default の LocationSource から自前のsourceに変更する
-            mMap.setLocationSource(this);
-            mMap.setMyLocationEnabled(true);
-            mMap.setOnMyLocationButtonClickListener(this);
+          //  mMap.setLocationSource(this);
+           // mMap.setMyLocationEnabled(true);
+           // mMap.setOnMyLocationButtonClickListener(this);
 
             //map.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
             // Add a marker in Sydney and move the camera
@@ -377,34 +298,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             } else {
 
                 //memo: defalutの地図を表示
-/*
+
                 destlatitude = Double.parseDouble(latitude);
                 destlongitude = Double.parseDouble(longitude);
 
                 latlng = new LatLng(destlatitude, destlongitude);
 
-            LatLngBounds AUSTRALIA = new LatLngBounds(
-                    new LatLng(35.65, 113), new LatLng(-10, 154));
-
-//東京駅をDefaultとする。35.681298, 35.681298
-
-                 LatLng JAPAN = new LatLng(36, 139);
-                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(AUSTRALIA.getCenter(), 1));
-
-                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(JAPAN,4));
-
                 //memo: マーカをクリックした時にデフォルトで出てしまうGoogleMapへのツールバーを削除
-
-
                 UiSettings us = mMap.getUiSettings();
                 us.setMapToolbarEnabled(false);
                 // 標準のマーカー
 
-             //   setMarker(destlatitude, destlongitude);
-             //   setMarker(35.681298,139.766247);
+                setMarker(destlatitude, destlongitude);
+
                 // アイコン画像をマーカーに設定
                 //setIcon(herelatitude, herelongitude);
-                */
+
             }
         }else{
             Log.d("debug", "permission error");
@@ -428,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
+    /*
     private void setIcon(double destlatitude, double destlongitude) {
 
         // マップに貼り付ける BitmapDescriptor生成
@@ -455,15 +365,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         overlay.setTransparency(0.0F);
 
     }
-
+    */
     private void zoomMap(double destlatitude, double destlongitude) {
         // 表示する東西南北の緯度経度を設定
-        /*
-        double south = herelatitude * (1-0.00005);
-        double west = herelongitude * (1-0.00005);
-        double north = herelatitude * (1+0.00005);
-        double east = herelongitude * (1+0.00005);
-        */
+
 
         /*
         memo: 1 ドアップ　0.1　何も見えない　10 海？何も見えない　0.9
@@ -558,68 +463,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onConnected(Bundle bundle) {
 
-        textLog += "onConnected()\n";
-        textView.setText(textLog);
 
         Log.d("API","Connected??");
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Log.d("debug", "permission granted");
 
-            // FusedLocationApi
-            // FusedLocationApi
-            LocationServices.FusedLocationApi.requestLocationUpdates(
-                    mGoogleApiClient, locationRequest, this);
+
             }
+
         else{
             Log.d("debug", "permission error");
             return;
         }
-
-        Location currentLocation = fusedLocationProviderApi.getLastLocation(mGoogleApiClient);
-        if (currentLocation != null && currentLocation.getTime() > 20000) {
-            location = currentLocation;
-
-            textLog += "---------- onConnected \n";
-            textLog += "Latitude=" + String.valueOf(location.getLatitude()) + "\n";
-            textLog += "Longitude=" + String.valueOf(location.getLongitude()) + "\n";
-            textLog += "Accuracy=" + String.valueOf(location.getAccuracy()) + "\n";
-            textLog += "Altitude=" + String.valueOf(location.getAltitude()) + "\n";
-            textLog += "Time=" + String.valueOf(location.getTime()) + "\n";
-            textLog += "Speed=" + String.valueOf(location.getSpeed()) + "\n";
-            textLog += "Bearing=" + String.valueOf(location.getBearing()) + "\n";
-            textView.setText(textLog);
-
-            Log.d("debug", textLog);
-
-
-
-        } else {
-            // バックグラウンドから戻ってしまうと例外が発生する場合がある
-            try {
-                //
-                fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
-                // Schedule a Thread to unregister location listeners
-                Executors.newScheduledThreadPool(1).schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, MainActivity.this);
-                    }
-                }, 60000, TimeUnit.MILLISECONDS);
-
-                textLog += "onConnected(), requestLocationUpdates \n";
-                textView.setText(textLog);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast toast = Toast.makeText(this, "例外が発生、位置情報のPermissionを許可していますか？", Toast.LENGTH_SHORT);
-                toast.show();
-
-                //MainActivityに戻す
-              //  finish();
-            }
-        }
-
 
     }
 
@@ -628,8 +484,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onConnectionSuspended(int i) {
         Log.d("API","Suspended??");
-        textLog += "onConnectionSuspended() \n";
-        textView.setText(textLog);
+
 
     }
 
@@ -637,84 +492,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d("API","connectionFaild??");
 
-        textLog += "onConnectionFailed()n";
-        textView.setText(textLog);
-
-        if (mResolvingError) {
-            // Already attempting to resolve an error.
-            Log.d("", "Already attempting to resolve an error");
-
-            return;
-        } else if (connectionResult.hasResolution()) {
-
-        } else {
-            mResolvingError = true;
-        }
 
     }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        Log.d("いよいよ","onLocationChanged");
-
-        lastLocationTime = location.getTime() - lastLocationTime;
-
-        textLog += "---------- onLocationChanged \n";
-        textLog += "Latitude=" + String.valueOf(location.getLatitude()) + "\n";
-        textLog += "Longitude=" + String.valueOf(location.getLongitude()) + "\n";
-        textLog += "Accuracy=" + String.valueOf(location.getAccuracy()) + "\n";
-        textLog += "Altitude=" + String.valueOf(location.getAltitude()) + "\n";
-        textLog += "Time=" + String.valueOf(location.getTime()) + "\n";
-        textLog += "Speed=" + String.valueOf(location.getSpeed()) + "\n";
-        textLog += "Bearing=" + String.valueOf(location.getBearing()) + "\n";
-        textLog += "time= " + String.valueOf(lastLocationTime) + " msec \n";
-        textView.setText(textLog);
-
-
-
-
-
-        if (onLocationChangedListener != null) {
-            onLocationChangedListener.onLocationChanged(location);
-
-            double lat = location.getLatitude();
-            double lng = location.getLongitude();
-
-            Log.d("debug","location="+lat+","+lng);
-
-            Toast.makeText(this, "location="+lat+","+lng, Toast.LENGTH_SHORT).show();
-
-            // Add a marker and move the camera
-            LatLng newLocation = new LatLng(lat, lng);
-            mMap.addMarker(new MarkerOptions().position(newLocation).title("My Location"));
-          //  mMap.addMarker(new MarkerOptions().position(newLocation));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(newLocation));
-        }
-
-    }
-
-    @Override
-    public void activate(OnLocationChangedListener onLocationChangedListener) {
-        this.onLocationChangedListener = onLocationChangedListener;
-        Toast.makeText(this, "Activate感知しました！", Toast.LENGTH_SHORT).show();
-
-    }
-
-    @Override
-    public void deactivate() {
-        this.onLocationChangedListener = null;
-        Toast.makeText(this, "Activate感知しました！", Toast.LENGTH_SHORT).show();
-
-    }
-
-    @Override
-    public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "onMyLocationButtonClick", Toast.LENGTH_SHORT).show();
-
-
-
-        return false;
-    }
-
 
 }
