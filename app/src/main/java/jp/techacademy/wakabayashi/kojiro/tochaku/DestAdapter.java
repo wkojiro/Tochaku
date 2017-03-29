@@ -81,11 +81,18 @@ public class DestAdapter extends BaseAdapter{
 
         Log.d("checked", String.valueOf(mDestArrayList.get(position).getPositionId()));
         Log.d("ID", String.valueOf(mDestArrayList.get(position).getId()));
+
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this.activity);
        // checked_id = sp.getInt(Const.PositionKey,-1) - 1;
+        if(sp.getInt(Const.PositionKey,-1) != -1){
+            Log.d("aa","dd");
+
+
         rails_id = sp.getInt(Const.RailsKEY,-1);
-        Log.d("checked_id", String.valueOf(checked_id));
-        Log.d("保存されたRailsID", String.valueOf(rails_id));
+
+
+            Log.d("checked_id", String.valueOf(checked_id));
+            Log.d("保存されたRailsID", String.valueOf(rails_id));
 
 
         //memo: 最新のRealmとRailsIDの同期をとる
@@ -98,13 +105,15 @@ public class DestAdapter extends BaseAdapter{
         checked_id = RailsRealm.getPositionId() -1;
         Log.d("RailsIDから取得されたPosition_id", String.valueOf(checked_id));
       //  if (selected_position == position || checked_id == position) {
-        if(checked_id == position){
-            checkBox.setChecked(true);
+            if(checked_id == position){
+                checkBox.setChecked(true);
 
-        } else {
-            checkBox.setChecked(false);
+            } else {
+                checkBox.setChecked(false);
 
+            }
         }
+
         checkBox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
