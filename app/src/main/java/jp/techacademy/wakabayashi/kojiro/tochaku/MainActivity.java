@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     String destemail;
 
     //memo: Googlemap追加
+    boolean isFirst = true;
     private GoogleMap mMap = null;
 
     private LatLng latlng;
@@ -221,7 +222,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         buttonStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkPermission();
+
+                //memo: ログインできていない場合はLogin画面へ
+                if (username.equals("") && email.equals("") && access_token.equals("")) {
+                        Toast toast = Toast.makeText(MainActivity.this, "ログインしてください。", Toast.LENGTH_LONG);
+                        toast.show();
+
+                    Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                    startActivity(intent);
+                } else {
+                    checkPermission();
+                }
 
 
 
@@ -343,6 +354,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             // 使用が許可された
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d("許可", "Granted");
+                isFirst = false;
                 return;
 
             } else {
@@ -416,6 +428,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onMapReady(GoogleMap googleMap) {
         Log.d("onMapReady", "when do you call me?");
 
+        mMap = googleMap;
+        if(isFirst == true){
+            //memo: defaultの地図
+            LatLng JAPAN = new LatLng(36, 139);
+
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(JAPAN, 4));
+
+            Toast.makeText(this, "目的地が設定されていません。", Toast.LENGTH_LONG).show();
+
+
+
+        }
+
         // check permission
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -459,6 +484,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
     }
+
+
 
     private void setMarker(double destlatitude, double destlongitude) {
 
@@ -532,10 +559,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 destlatitude = Double.parseDouble(latitude);
                 destlongitude = Double.parseDouble(longitude);
 
-             //   latlng = new LatLng(destlatitude, destlongitude);
+                latlng = new LatLng(destlatitude, destlongitude);
 
                 // 標準のマーカー
-               // setMarker(destlatitude, destlongitude);
+                setMarker(destlatitude, destlongitude);
             }
 
 
