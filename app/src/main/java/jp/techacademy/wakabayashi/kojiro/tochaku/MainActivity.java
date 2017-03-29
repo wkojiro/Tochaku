@@ -99,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     //memo: 現在位置関連 LocationClient の代わりにGoogleApiClientを使います
     GoogleApiClient mGoogleApiClient;
+    private boolean mResolvingError = false;
 
 
     //memo: 現在位置を求めるための変数群
@@ -130,9 +131,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     protected String mLongitudeLabel;
     protected String mLastUpdateTimeLabel;
 
+    protected LatLng currentlatlng;
+
     protected Boolean mRequestingLocationUpdates;
     protected String mLastUpdateTime;
 
+    MarkerOptions currentMarker = new MarkerOptions();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,11 +146,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Log.d("MainActivity", "onCreate()");
         //    textView = (TextView) findViewById(R.id.text_view);
 
-        if (Build.VERSION.SDK_INT >= 23) {
-            checkPermission();
-        } else {
-            requestLocationPermission();
-        }
+        //memo: 位置情報取得のために必要GoogleApiClient.ConnectionCallbacks　GoogleApiClient.OnConnectionFailedListener
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+
+        //memo: Permission 必要なし　map の表示　現状は超デフォルト本来はここで日本の地図にしたい
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
+      //  checkPermission();
 
 
         //memo: Toolbar
@@ -204,6 +216,28 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mUsername = (TextView) findViewById(R.id.username);
         mUsername.setText(String.valueOf(username));
 
+        //memo: Buttonを実装
+        Button buttonStart = (Button) findViewById(R.id.button_start);
+        buttonStart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                checkPermission();
+
+
+
+            }
+        });
+        Button buttonStop = (Button) findViewById(R.id.button_stop);
+        buttonStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                stopLocationUpdates();
+
+            }
+        });
+
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -220,6 +254,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
             }
         });
+
     }
 
 
@@ -229,19 +264,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Log.d("許可", "Granted");
 
-
-            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+            //memo: map の表示　現状は超デフォルト本来はここで日本の地図にしたい
+           /* SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
             mapFragment.getMapAsync(this);
-
-            //memo: 位置情報取得のために必要GoogleApiClient.ConnectionCallbacks　GoogleApiClient.OnConnectionFailedListener
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(LocationServices.API)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-
-            // mGoogleApiClient.connect();
+*/
 
             //memo: Locationをリクエストするためのインターバルなどをセット
             createLocationRequest();
@@ -249,12 +276,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             buildLocationSettingsRequest();
 
 
+            if (!mRequestingLocationUpdates) {
+                mRequestingLocationUpdates = true;
+                setButtonsEnabledState();
+                startLocationUpdates();
+            }
+
+
             // 測位開始
+            /*
             Button buttonStart = (Button) findViewById(R.id.button_start);
             buttonStart.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
 
                     if (!mRequestingLocationUpdates) {
                         mRequestingLocationUpdates = true;
@@ -276,6 +310,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
                 }
             });
+            */
 
         }
         // 拒否していた場合
@@ -342,7 +377,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         super.onStart();
 
         //memo: 新たにビルドするとここがまずエラーになりやすい(仮説：Permissionを受ける前に発火してしまうから）
-        mGoogleApiClient.connect();
+      //if(mResolvingError != false) {
+          mGoogleApiClient.connect();
+      //  }
     }
 
     // onResumeフェーズに入ったら接続
@@ -377,7 +414,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-
+        Log.d("onMapReady", "when do you call me?");
 
         // check permission
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -488,18 +525,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             mUsername = (TextView) findViewById(R.id.username);
             mUsername.setText(String.valueOf(username));
 
-/*
+
             //memo: 目的地が変更されたら即座に変更
-            if (latitude != null && longitude != null) {
+
+            if (latitude != "" && longitude != "") {
                 destlatitude = Double.parseDouble(latitude);
                 destlongitude = Double.parseDouble(longitude);
 
-                latlng = new LatLng(destlatitude, destlongitude);
+             //   latlng = new LatLng(destlatitude, destlongitude);
 
                 // 標準のマーカー
-                setMarker(destlatitude, destlongitude);
+               // setMarker(destlatitude, destlongitude);
             }
-*/
+
+
+
         }
     }
 
@@ -677,6 +717,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Log.d("API","connectionFaild??");
 
 
+
+
+
     }
             /**
              * Callback that fires when the location changes.
@@ -686,6 +729,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
        mCurrentLocation = location;
        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+
+       //memo: 地図の中心を現在位置にしてみる
+        currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+      // mMap.animateCamera(CameraUpdateFactory.newLatLng(curr));
+
+        currentMarker.position(currentlatlng);
+        currentMarker.title("現在位置");
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+        mMap.addMarker(currentMarker);
+
        updateLocationUI();
        Toast.makeText(this, "現在地の変更を感知しました", Toast.LENGTH_LONG).show();
 
