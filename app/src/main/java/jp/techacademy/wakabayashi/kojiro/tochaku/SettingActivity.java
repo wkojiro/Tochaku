@@ -291,6 +291,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     /* onCreate */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("SettingActivity","onCreate");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
@@ -630,10 +632,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         Log.d("selected_position",String.valueOf(selected_position));
 
 
-
-
-/* realmの情報から取得 */
-
       //  final Dest dest = (Dest) parent.getAdapter().getItem(selected_position);
 
         Realm realm = Realm.getDefaultInstance();
@@ -645,10 +643,12 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         //sp.registerOnSharedPreferenceChangeListener(this);
-        sp.edit().remove("destname").remove("destaddress").remove("destemail").remove("latitude").remove("longitude").commit();
+        sp.edit().remove("id").remove("position_id").remove("destname").remove("destaddress").remove("destemail").remove("latitude").remove("longitude").commit();
 
 
         SharedPreferences.Editor editor = sp.edit();
+        editor.putInt(Const.RailsKEY,destRealm.getId());
+        editor.putInt(Const.PositionKey,destRealm.getPositionId());
         editor.putString(Const.DestnameKEY , destRealm.getDestName());
         editor.putString(Const.DestaddressKEY, destRealm.getDestAddress());
         editor.putString(Const.DestemailKEY, destRealm.getDestEmail());

@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
+import io.realm.Realm;
 
 
 /**
@@ -27,7 +28,10 @@ public class DestAdapter extends BaseAdapter{
     private SettingActivity activity;
     private LayoutInflater mLayoutInflater;
     private ArrayList<Dest> mDestArrayList;
-    Integer selected_position = -1;
+    Dest RailsRealm;
+    Integer checked_id = -1;
+    Integer rails_id = -1;
+    public Integer selected_position = -1;
 
 
     public DestAdapter(Context context,SettingActivity activity) {
@@ -73,14 +77,29 @@ public class DestAdapter extends BaseAdapter{
         textView2.setText(mDestArrayList.get(position).getDestAddress());
         textView3.setText(mDestArrayList.get(position).getDestEmail());
 
+        //checkBox.setChecked(true);
 
-       // Log.d("mDestArrayList", String.valueOf(mDestArrayList.get(position).getDestName()));
-       // Log.d("2setChecked", String.valueOf(position));
+        Log.d("checked", String.valueOf(mDestArrayList.get(position).getPositionId()));
+        Log.d("ID", String.valueOf(mDestArrayList.get(position).getId()));
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this.activity);
+       // checked_id = sp.getInt(Const.PositionKey,-1) - 1;
+        rails_id = sp.getInt(Const.RailsKEY,-1);
+        Log.d("checked_id", String.valueOf(checked_id));
+        Log.d("保存されたRailsID", String.valueOf(rails_id));
 
-        if (selected_position == position) {
+
+        //memo: 最新のRealmとRailsIDの同期をとる
+        Realm realm = Realm.getDefaultInstance();
+
+        //memo: destIdで検索して当該のデータを取得 positionは０はじまり、position_idは１はじまりだから＋１する。
+        RailsRealm = realm.where(Dest.class).equalTo("id", rails_id ).findFirst();
+        realm.close();
+
+        checked_id = RailsRealm.getPositionId() -1;
+        Log.d("RailsIDから取得されたPosition_id", String.valueOf(checked_id));
+      //  if (selected_position == position || checked_id == position) {
+        if(checked_id == position){
             checkBox.setChecked(true);
-
-
 
         } else {
             checkBox.setChecked(false);
@@ -98,10 +117,11 @@ public class DestAdapter extends BaseAdapter{
 
 
                    // String result3 = "OK";
+                    //memo: 親activityのメソッドを呼んでいる
                     activity.addDestination(selected_position);
 
 
-                   // ((Activity)context).finish();
+
 
                 }
                 else

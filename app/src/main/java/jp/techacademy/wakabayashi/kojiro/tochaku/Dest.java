@@ -40,7 +40,6 @@ public class Dest extends RealmObject implements Serializable {
         this.id = id;
     }
 
-
     public int getPositionId(){
         return position_id;
     }

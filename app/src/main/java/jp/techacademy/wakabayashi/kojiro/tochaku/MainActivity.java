@@ -554,7 +554,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
             //memo: 目的地が変更されたら即座に変更
-
             if (latitude != "" && longitude != "") {
                 destlatitude = Double.parseDouble(latitude);
                 destlongitude = Double.parseDouble(longitude);
