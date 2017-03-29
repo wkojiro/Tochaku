@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.net.http.HttpResponseCache;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,6 +27,7 @@ import android.widget.TextView;
 //memo: GoogleMap追加 http://stackoverflow.com/questions/38878636/google-maps-in-middle-area-of-an-activity
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -48,19 +50,22 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 
+import java.text.DateFormat;
+import java.util.Date;
+
 
 
 /*
 https://akira-watson.com/android/google-map-zoom-addmarker.html
+https://github.com/googlesamples/android-play-location/tree/master/LocationUpdates
  */
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener, OnMapReadyCallback,
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener
         {
 
-  //  private LocationManager locationManager;
-    private final int REQUEST_PERMISSION = 10;
+
 
     SharedPreferences sp;
     TextView mUsername;
@@ -81,7 +86,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     //memo: Googlemap追加
     private GoogleMap mMap = null;
-    private SupportMapFragment mapFragment;
 
     private LatLng latlng;
     private int width, height;
@@ -92,6 +96,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     GoogleApiClient mGoogleApiClient;
 
 
+    //memo: 現在位置を求めるための変数群
+    private final int REQUEST_PERMISSION = 10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             requestLocationPermission();
         }
 
-
+        
         //memo: Toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -170,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
            Log.d("許可","Granted");
 
 
-            mapFragment = (SupportMapFragment) getSupportFragmentManager()
+            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
             mapFragment.getMapAsync(this);
 
@@ -249,7 +255,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     protected void onResume() {
         super.onResume();
-        mGoogleApiClient.connect();
+
+        //memo: 新たにビルドするとここがまずエラーになりやすい(仮説：Permissionを受ける前に発火してしまうから？）
+       // mGoogleApiClient.connect();
 
 
     }
@@ -258,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onPause() {
         super.onPause();
-       mGoogleApiClient.disconnect();
+      // mGoogleApiClient.disconnect();
     }
 
 
@@ -493,6 +501,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Log.d("API","connectionFaild??");
 
 
+    }
+            /**
+             * Callback that fires when the location changes.
+             */
+    @Override
+    public void onLocationChanged(Location location) {
+     /*
+       mCurrentLocation = location;
+       mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+       updateLocationUI();
+       */
     }
 
 }

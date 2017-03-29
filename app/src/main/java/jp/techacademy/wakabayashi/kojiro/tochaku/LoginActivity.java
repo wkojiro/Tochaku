@@ -277,7 +277,7 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
         mEmailEditText = (EditText) findViewById(R.id.emailText);
         mPasswordEditText = (EditText) findViewById(R.id.passwordText);
 
-        //memo: 未実装
+        //memo:
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("処理中...");
 
@@ -296,12 +296,16 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
                 password = mPasswordEditText.getText().toString();
 
                 if (email.length() != 0 && password.length() >= 6 ) {
-
+                    // プログレスダイアログを表示する
+                    // プログレスダイアログを表示する
+                    mProgress.show();
                     new createAccount().execute(type, username ,email , password);
                    // createAccount(email, password);
+
                 } else {
 
                     Snackbar.make(v, "正しく入力してください", Snackbar.LENGTH_LONG).show();
+
 
                 }
             }
@@ -322,12 +326,18 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
                 if (email.length() != 0 && password.length() >= 6) {
 
+                    // プログレスダイアログを表示する
+                    mProgress.show();
                     new loginAccount().execute(type, email , password);
+
 
                   //  login(email, password);
                 } else {
 
                     Snackbar.make(v, "正しく入力してください", Snackbar.LENGTH_LONG).show();
+
+                    // プログレスダイアログを非表示にする
+
                 }
             }
         });
@@ -336,6 +346,8 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     private class createAccount extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
+
+
 
             String urlString = "https://rails5api-wkojiro1.c9users.io/users.json";
 
@@ -365,10 +377,15 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
 
             if(result.equals("OK")) {
                 saveUserdata();
+
+                // プログレスダイアログを非表示にする
+                mProgress.dismiss();
                 Snackbar.make(v, "会員登録が完了しました。", Snackbar.LENGTH_LONG).show();
                 finish();
             } else {
                 Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+                // プログレスダイアログを非表示にする
+                mProgress.dismiss();
             }
         }
     }
@@ -377,6 +394,8 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
     private class loginAccount extends AsyncTask<String, Void, String>{
         @Override
         protected String doInBackground(String... params){
+
+            mProgress.show();
 
             String urlString = "https://rails5api-wkojiro1.c9users.io/users/sign_in.json";
             user = new User();
@@ -401,9 +420,13 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
             View v = findViewById(android.R.id.content);
             if(result.equals("OK")) {
                 saveUserdata();
+                // プログレスダイアログを非表示にする
+                mProgress.dismiss();
                 Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
                 finish();
             } else {
+                // プログレスダイアログを非表示にする
+                mProgress.dismiss();
                 Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
             }
         }

@@ -78,8 +78,8 @@ public class DestActivity extends AppCompatActivity implements SharedPreferences
     String res_destname;
     String res_destemail;
     String res_destaddress;
-    Float res_destlatitude;
-    Float res_destlongitude;
+    String res_destlatitude;
+    String res_destlongitude;
 
     //memo: preferencceの書き換えを検知するListener
     @Override

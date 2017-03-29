@@ -8,4 +8,8 @@
     <string name="destinationcound">目的地登録件数</string>
     <string name="Profile">プロフィール</string>
     <string name="Logout">ログアウト</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="location_settings_inadequate_warning">The location settings on the device are not
+        adequate to run this sample. Fix in Settings.</string>
 </resources>

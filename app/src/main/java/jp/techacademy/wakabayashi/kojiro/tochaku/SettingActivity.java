@@ -97,13 +97,16 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     String apiemail;
     String apitoken;
 
+    //削除する目的地をいれておく
+    Dest dest;
+
 
     SharedPreferences sp;
 
     //API用変数
     HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
     BufferedReader reader = null;
-    StringBuilder jsonData = new StringBuilder();
+    // StringBuilder jsonData = new StringBuilder();
     InputStream inputStream = null;
     String result = "";
     String result2 = "";
@@ -230,28 +233,30 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
                 String line = reader.readLine();
 
+                StringBuilder jsonData = new StringBuilder();
                 while (line != null) {
                     jsonData.append(line);
                     line = reader.readLine();
                 }
 
-               // System.out.println(jsonData.toString());
+               System.out.println(jsonData.toString());
 
                 JSONArray jsonarray = new JSONArray(jsonData.toString());
                 for (int i = 0; i < jsonarray.length(); i++) {
                     JSONObject jsonobject = jsonarray.getJSONObject(i);
-
-
                 }
 
-              //  Log.d("6jsonArray",String.valueOf(jsonarray));
+              Log.d("6jsonArray",String.valueOf(jsonarray));
 
-                Realm realm = Realm.getDefaultInstance();
-                realm.beginTransaction();
-                realm.createOrUpdateAllFromJson(Dest.class,jsonarray); //Realm にそのまま吸い込まれた
-                realm.commitTransaction();
-
-                realm.close();
+                //Realm mrealm = Realm.getDefaultInstance();
+                mRealm= Realm.getDefaultInstance();
+                mRealm.beginTransaction();
+                Log.d("デリート前",String.valueOf(mRealm.isEmpty()));
+                mRealm.where(Dest.class).findAll().deleteAllFromRealm();
+                Log.d("デリート後",String.valueOf(mRealm.isEmpty()));
+                mRealm.createOrUpdateAllFromJson(Dest.class,jsonarray); //Realm にそのまま吸い込まれた
+                Log.d("後",String.valueOf(mRealm.isEmpty()));
+                mRealm.commitTransaction();
 
             }
 
@@ -305,6 +310,10 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mEmailText.setText(apiemail);
         mDestCountText = (TextView) findViewById(R.id.DestsText);
 
+        //memo:
+        mProgress = new ProgressDialog(this);
+        mProgress.setMessage("処理中...");
+
         mProfileButton = (Button) findViewById(R.id.ProfileButton);
         mProfileButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -337,7 +346,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         });
 
 
-
+        mProgress.show();
         //memo: 目的地一覧を取得
         new getDestinations().execute();
 
@@ -360,7 +369,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         mDestAdapter.notifyDataSetChanged();
 
 
-        reloadListView();
+
 
         // ListViewをタップしたときの処理
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -368,7 +377,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // ①入力・編集する画面に遷移させる ②トチェックを表示して、この目的地を選択し、選択されたものはPreferenceに保存される。
 
-                Dest dest = (Dest) parent.getAdapter().getItem(position);
+                dest = (Dest) parent.getAdapter().getItem(position);
 
 
                 Log.d("PositionID",String.valueOf(dest.getPositionId()));
@@ -394,7 +403,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 Log.d("タスク","削除");
              //   new delete().execute();
 
-                final Dest dest = (Dest) parent.getAdapter().getItem(position);
+                dest = (Dest) parent.getAdapter().getItem(position);
                 // ダイアログを表示する
 
 
@@ -402,24 +411,12 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
                 builder.setTitle("削除");
                 builder.setMessage(dest.getDestName() + "を削除しますか");
-
-
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-
                         //Rails側削除
                         new deletedest().execute(String.valueOf(dest.getDestUrl()));
 
-                        //Realm側削除（これはやめたい）
-                        RealmResults<Dest> results = mRealm.where(Dest.class).equalTo("id", dest.getId()).findAll();
-
-                        mRealm.beginTransaction();
-                        results.deleteAllFromRealm();
-                        mRealm.commitTransaction();
-
-
-                        //reloadListView();
                     }
                 });
                 // アラートダイアログのキャンセルボタンを設定します。nullは何もしない。
@@ -434,6 +431,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
                 return true;
             }
         });
+
+        reloadListView();
     }
 
 
@@ -488,7 +487,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
         //memo: 目的地一覧を取得
        // new getDestinations().execute();
-        reloadListView();
+       // reloadListView();
     }
 
 
@@ -511,13 +510,26 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             View v = findViewById(android.R.id.content);
             if(result.equals("OK")) {
                 //deleteUserdata();
+                //Realm側削除
+                mRealm = Realm.getDefaultInstance();
+                RealmResults<Dest> results = mRealm.where(Dest.class).equalTo("id", dest.getId()).findAll();
+
+                mRealm.beginTransaction();
+                results.deleteAllFromRealm();
+
+                mRealm.commitTransaction();
+
 
                 Snackbar.make(v, "削除しました", Snackbar.LENGTH_LONG).show();
+
                 //memo: 目的地一覧を取得
                 new getDestinations().execute();
                 //finish();
             } else {
                 Snackbar.make(v, "削除に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+                mProgress.dismiss();
+
+
             }
 
         }
@@ -550,8 +562,11 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
                 Snackbar.make(v, "ログアウトしました", Snackbar.LENGTH_LONG).show();
                 finish();
+
+                mProgress.dismiss();
             } else {
                 Snackbar.make(v, "ログアウトに失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+                mProgress.dismiss();
             }
         }
 
@@ -600,13 +615,13 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             View v = findViewById(android.R.id.content);
             if(result.equals("OK")) {
                 //saveUserdata();
-                if(mDestRealmResults.size() == 0){
-                    Snackbar.make(v, "目的地が登録されていません。", Snackbar.LENGTH_LONG).show();
-                }else{
+
                     Snackbar.make(v, "目的地の一覧を取得しました", Snackbar.LENGTH_LONG).show();
-                }
+                mProgress.dismiss();
+
             } else {
                 Snackbar.make(v, "目的地の一覧取得に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+                mProgress.dismiss();
             }
         }
     }
@@ -637,8 +652,8 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         editor.putString(Const.DestnameKEY , destRealm.getDestName());
         editor.putString(Const.DestaddressKEY, destRealm.getDestAddress());
         editor.putString(Const.DestemailKEY, destRealm.getDestEmail());
-        editor.putString(Const.DestLatitudeKEY, String.valueOf(destRealm.getDestLatitude()));
-        editor.putString(Const.DestLongitudeKEY, String.valueOf(destRealm.getDestLongitude()));
+        editor.putString(Const.DestLatitudeKEY, destRealm.getDestLatitude());
+        editor.putString(Const.DestLongitudeKEY, destRealm.getDestLongitude());
         //  editor.putString(Const.PassKey, res_password);
 
         editor.commit();

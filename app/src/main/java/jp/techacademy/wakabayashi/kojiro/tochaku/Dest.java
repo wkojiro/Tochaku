@@ -22,13 +22,13 @@ public class Dest extends RealmObject implements Serializable {
 
     // id をプライマリーキーとして設定(Jsonで取得したデータをRealmで内部に保存する。）
     @PrimaryKey
-    private int id;
-    private int position_id;
+    private Integer id;
+    private Integer position_id;
     private String destname;
     private String destemail;
     private String destaddress;
-    private float latitude;
-    private float longitude;
+    private String latitude;
+    private String longitude;
     private String url;
 
 
@@ -73,18 +73,18 @@ public class Dest extends RealmObject implements Serializable {
         this.destaddress = destaddress;
     }
 
-    public Float getDestLatitude(){
+    public String getDestLatitude(){
         return latitude;
     }
-    public void setDestLatitude(Float latitude){
+    public void setDestLatitude(String latitude){
         this.latitude = latitude;
     }
 
-    public Float getDestLongitude(){
+    public String getDestLongitude(){
         return longitude;
     }
 
-    public void setDestLongitude(Float longitude){
+    public void setDestLongitude(String longitude){
         this.longitude = longitude;
     }
 
@@ -94,8 +94,5 @@ public class Dest extends RealmObject implements Serializable {
     public void setDestUrl(String url) {
         this.url = url;
     }
-
-
-
 
 }
