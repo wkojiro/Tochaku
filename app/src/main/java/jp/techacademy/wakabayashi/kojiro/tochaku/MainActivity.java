@@ -157,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         ActionBar bar = this.getSupportActionBar();
 
 // タイトルを設定
-        toolbar.setTitle("タイトル");
+        toolbar.setTitle("到着予報");
         toolbar.setTitleTextColor(Color.WHITE);
 
 // ナビゲーションアイコンの設定、クリック処理
@@ -165,17 +165,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         toolbar.findViewById(R.id.toolbar).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("タグ","Clicked");
-
+                Log.d("タグ", "Clicked");
 
 
             }
         });
-
-
-        if(isFirst){
-            Log.d("","");
-        }
 
 
         //memo: 位置情報取得のために必要GoogleApiClient.ConnectionCallbacks　GoogleApiClient.OnConnectionFailedListener
@@ -297,19 +291,20 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Log.d("Debug", "CheckPermission");
 
-           // isStart = true;
+            // isStart = true;
 
             //memo: Locationをリクエストするためのインターバルなどをセット
             createLocationRequest();
             buildLocationSettingsRequest();
 
-            //memo: ここで計測Startされる
+            //memo: ここで計測Startされる　こいつ→startLocationUpdates();
             if (!mRequestingLocationUpdates) {
                 Log.d("debug", String.valueOf(mRequestingLocationUpdates));
-
+                //memo:trueは計測中を意味する。
                 mRequestingLocationUpdates = true;
                 setButtonsEnabledState();
                 startLocationUpdates();
+                //liveMap();
 
 
             }
@@ -423,7 +418,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     protected void onStop() {
         super.onStop();
         mGoogleApiClient.disconnect();
-       // mMap.clear();
+        // mMap.clear();
 
     }
 
@@ -434,29 +429,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mMap = googleMap;
         defaultMap();
 
-        /*
-        //memo: check permission
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            Log.d("debug", "permission granted");
-            Log.d("debug", "onMapReady:"+String.valueOf(mRequestingLocationUpdates));
-            if (latitude != "" && longitude != "") {
-
-
-                liveMap();
-                mMap.setMyLocationEnabled(true);
-
-            } else {
-                defaultMap();
-            }
-
-        } else {
-
-            defaultMap();
-            Log.d("debug", "permission error");
-            Toast.makeText(this, "このアプリをご利用になるには許可が必要です。", Toast.LENGTH_LONG).show();
-        }
-        */
 
 
     }
@@ -472,8 +444,38 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
-    private void liveMap(){
+    private void liveMap() {
 
+        if (currentMarker != null) {
+            currentMarker.remove();
+        }
+
+
+        //memo: 地図の中心を現在位置にしてみる
+        currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        // mMap.animateCamera(CameraUpdateFactory.newLatLng(curr));
+
+       // currentMarkerOptions.position(currentlatlng);
+       // currentMarkerOptions.title("現在位置");
+        //currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mMap.setMyLocationEnabled(true);
+
+
+        //currentMarker = mMap.addMarker(currentMarkerOptions);
+        zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+/*
         //memo: Preferenceから取得した情報から目的地を中心とした地図をつくる
         destlatitude = Double.parseDouble(latitude);
         destlongitude = Double.parseDouble(longitude);
@@ -491,6 +493,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         //memo: アイコン画像をマーカーに設定
         //setIcon(herelatitude, herelongitude);
 
+*/
+        /*
+
+        ボタンを押した時に計測スタートできる状態（つまり、目的地も設定されている状態）であるため、ここでは
+
+        ・２つの地点の中間点からズームされた地図を出す
+        ・２つの距離を計算しViewに出す。
+        ・メールが送信される。
+
+
+
+
+         */
+
+
 
     }
 
@@ -503,7 +520,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mMap.addMarker(markerOptions);
 
         // ズーム
-        zoomMap(destlatitude, destlongitude);
+        //zoomMap(destlatitude, destlongitude);
     }
 
     private void zoomMap(double destlatitude, double destlongitude) {
@@ -570,7 +587,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
     }
 
-
+//memo: ここからLocationUpdates(定期取得がはじまる。onConnectedしておいて、startLocationUpdatesで要求を出したのちに
+// LocationChangedで居場所が返ってくるという流れ）
     protected void startLocationUpdates() {
         LocationServices.SettingsApi.checkLocationSettings(
                 mGoogleApiClient,
@@ -673,15 +691,30 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Log.d("API", "Connected??");
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            Log.d("Current_location", String.valueOf(mCurrentLocation));
+
+            //memo: パーミッションがあるが、ボタンが押されたタイミングか？
             if (mCurrentLocation == null) {
+
                 mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+
+                /*
+
+                この段階では、APIがConnectされて、要求が出された段階？
+
+
+                 */
+                mMap.setMyLocationEnabled(true);
+                liveMap();
+
                 updateLocationUI();
                 Log.d("Current_location", String.valueOf(mCurrentLocation));
             }
+
+            //これはどう言う状態だ？
             if (mRequestingLocationUpdates) {
                 Log.i(TAG, "in onConnected(), starting location updates");
+                Log.d("debug", "onConnected_mRequestingLocationUpdates");
                 startLocationUpdates();
             }
         } else {
@@ -711,6 +744,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mCurrentLocation = location;
         mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
 
+        liveMap();
+
+        /*
         //memo: 地図の中心を現在位置にしてみる
         currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         // mMap.animateCamera(CameraUpdateFactory.newLatLng(curr));
@@ -726,9 +762,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
 
         currentMarker = mMap.addMarker(currentMarkerOptions);
-
+      */
        updateLocationUI();
        Toast.makeText(this, "現在地の変更を感知しました", Toast.LENGTH_LONG).show();
+
 
     }
 

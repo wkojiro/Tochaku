@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -67,9 +68,38 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp"
             android:layout_gravity="bottom"
             android:layout_below="@+id/mapFrame"
             android:layout_centerHorizontal="true">
+
+
+            <RelativeLayout
+                android:id="@+id/mid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginLeft="0dp"
+                android:layout_marginRight="0dp"
+                android:layout_above="@+id/header"
+                android:layout_centerHorizontal="true">
+
+                <TextView
+                    android:id="@+id/dest_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"
+                    android:layout_marginRight="20dp"
+                    android:layout_marginStart="@dimen/middle_margin"
+                    android:layout_centerHorizontal="true"
+                    android:gravity="center"
+                    android:text="aaa"
+                    android:background="#8FFF"
+                    android:textSize="@dimen/default_text_size"/>
+
+            </RelativeLayout>
+
+
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -83,7 +113,6 @@
                 android:gravity="center"
                 android:orientation="horizontal"
                 tools:ignore="ObsoleteLayoutParam">
-
 
                 <Button
                     android:id="@+id/button_start"
@@ -144,7 +173,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:orientation="vertical" >
+            android:orientation="vertical">
         </LinearLayout>
     </FrameLayout>
 </RelativeLayout>
