@@ -257,6 +257,8 @@ public class DestActivity extends AppCompatActivity implements SharedPreferences
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dest);
 
+        setTitle("目的地の追加");
+
         //memo: 保存されているユーザー情報をあらかじめ取得しておく。API用
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         sp.registerOnSharedPreferenceChangeListener(this);

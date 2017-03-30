@@ -37,8 +37,16 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SettingActivity"
-            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".SettingActivity"
+            android:label="設定"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+        <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="jp.techacademy.wakabayashi.kojiro.tochaku.MainActivity" />
+        </activity>
         <activity android:name=".DestActivity"
             android:screenOrientation="portrait"/>
         <meta-data

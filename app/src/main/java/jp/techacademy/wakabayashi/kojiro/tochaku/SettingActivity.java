@@ -12,12 +12,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -293,6 +295,19 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("SettingActivity","onCreate");
 
+        // ActionBarを設定する// ツールバーをアクションバーとしてセット
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
+        toolbar.setTitle("タイトル");
+
+
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
@@ -305,7 +320,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         apitoken = sp.getString(Const.TokenKey, "");
 
         //memo: Fixed features
-        setTitle("設定画面");
         mUserNameText = (TextView) findViewById(R.id.userNameText);
         mUserNameText.setText(apiusername);
         mEmailText = (TextView) findViewById(R.id.EmailText);
@@ -579,7 +593,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         // Preferenceを削除する
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        sp.edit().remove("username").remove("email").remove("access_token").commit();
+        sp.edit().remove("username").remove("email").remove("access_token").remove("id").remove("position_id").remove("destname").remove("destaddress").remove("destemail").remove("latitude").remove("longitude").commit();
         //sp.edit().clear().commit();
         Log.d("Delete","done");
         apiemail = null;
@@ -673,7 +687,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
+/*
         int id = item.getItemId();
 
         if (id == R.id.item2) {
@@ -683,5 +697,22 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
             return true;
         }
         return super.onOptionsItemSelected(item);
+*/
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                // 設定ボタン押下処理
+                Intent intent = new Intent(SettingActivity.this, DestActivity.class);
+                startActivity(intent);
+                //startActivityForResult(intent, REQUEST_CODE);
+
+                Log.d("新しいページへ","目的地追加ページ");
+                break;
+            default:
+                break;
+        }
+
+        return super.onOptionsItemSelected(item);
+
+
     }
 }

@@ -6,7 +6,7 @@
     <item
         android:id="@+id/item1"
         android:title="設定"
-        app:showAsAction="never">
+        app:showAsAction="always">
     </item>
 
 </menu>

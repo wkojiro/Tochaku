@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -422,12 +423,15 @@ public class LoginActivity extends AppCompatActivity implements SharedPreference
                 saveUserdata();
                 // プログレスダイアログを非表示にする
                 mProgress.dismiss();
-                Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
+                Toast.makeText(LoginActivity.this, "ログインが完了しました。", Toast.LENGTH_LONG).show();
+                //Snackbar.make(v, "ログインが完了しました。", Snackbar.LENGTH_LONG).show();
                 finish();
             } else {
                 // プログレスダイアログを非表示にする
                 mProgress.dismiss();
-                Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
+
+                Toast.makeText(LoginActivity.this, "会員登録に失敗しました。通信環境をご確認下さい。", Toast.LENGTH_LONG).show();
+                //Snackbar.make(v, "会員登録に失敗しました。通信環境をご確認下さい。", Snackbar.LENGTH_LONG).show();
             }
         }
     }

@@ -29,13 +29,26 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_dialog_map" />
+        android:src="@drawable/plus" />
+
 
     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".MainActivity" >
+
+
+    <FrameLayout
+        android:id="@+id/mapFrame"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:name="com.google.android.gms.maps.SupportMapFragment"
+                  android:id="@+id/map"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent" />
 
     <TextView
         android:id="@+id/username"
@@ -49,20 +62,13 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
-
-        <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-            android:name="com.google.android.gms.maps.SupportMapFragment"
-            android:id="@+id/map"
-            android:layout_below="@id/username"
-            android:layout_width="match_parent"
-            android:layout_height="300dp" />
-
         <LinearLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_below="@+id/map"
+            android:layout_gravity="bottom"
+            android:layout_below="@+id/mapFrame"
             android:layout_centerHorizontal="true">
 
             <LinearLayout
@@ -72,7 +78,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginLeft="20dp"
                 android:layout_marginRight="20dp"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="10dp"
                 android:background="#8af"
                 android:gravity="center"
                 android:orientation="horizontal"
@@ -140,8 +146,8 @@
             android:layout_alignParentBottom="true"
             android:orientation="vertical" >
         </LinearLayout>
-
-    </RelativeLayout>
+    </FrameLayout>
+</RelativeLayout>
 
 
 
