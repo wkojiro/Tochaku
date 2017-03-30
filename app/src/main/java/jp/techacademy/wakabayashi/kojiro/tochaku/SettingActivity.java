@@ -295,6 +295,9 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("SettingActivity","onCreate");
 
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_setting);
+
         // ActionBarを設定する// ツールバーをアクションバーとしてセット
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -304,12 +307,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
         }
 
         toolbar.setTitle("タイトル");
-
-
-
-
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_setting);
 
         //memo: Login時に保存したユーザーデータを取得
         sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -687,7 +684,7 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-/*
+
         int id = item.getItemId();
 
         if (id == R.id.item2) {
@@ -696,21 +693,6 @@ public class SettingActivity extends AppCompatActivity implements SharedPreferen
 
             return true;
         }
-        return super.onOptionsItemSelected(item);
-*/
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                // 設定ボタン押下処理
-                Intent intent = new Intent(SettingActivity.this, DestActivity.class);
-                startActivity(intent);
-                //startActivityForResult(intent, REQUEST_CODE);
-
-                Log.d("新しいページへ","目的地追加ページ");
-                break;
-            default:
-                break;
-        }
-
         return super.onOptionsItemSelected(item);
 
 

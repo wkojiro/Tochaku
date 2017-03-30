@@ -23,6 +23,12 @@
 
     </android.support.design.widget.AppBarLayout>
 
+
+<android.support.constraint.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
     <TextView
         android:id="@+id/userNameText"
         android:layout_width="150dp"
@@ -52,7 +58,7 @@
         app:layout_constraintLeft_toLeftOf="@+id/EmailText"
         app:layout_constraintHorizontal_bias="0.0"
         android:layout_marginTop="17dp"
-        app:layout_constraintTop_toBottomOf="@+id/EmailText" />/>
+        app:layout_constraintTop_toBottomOf="@+id/EmailText" />
 
 
     <Button
@@ -99,6 +105,8 @@
         android:layout_marginEnd="8dp"
         android:id="@+id/listView"
         app:layout_constraintHorizontal_bias="0.0" />
+</android.support.constraint.ConstraintLayout>
+
 
 
 </android.support.constraint.ConstraintLayout>
