@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.net.http.HttpResponseCache;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -39,6 +40,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.LocationSource;
@@ -60,9 +62,21 @@ import android.widget.Toast;
 
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 
@@ -173,8 +187,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     protected Boolean mRequestingLocationUpdates;
     protected String mLastUpdateTime;
 
+    Marker destmarker;
     Marker currentMarker;
     MarkerOptions currentMarkerOptions = new MarkerOptions();
+    Polyline polylineFinal;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -283,11 +300,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void onClick(View v) {
                 Log.d("Debug", "mStopUpdatesButton");
+                mStatus= 0;
                 mMap.clear();
+                updateUI();
                 defaultMap();
 
 
                 stopLocationUpdates();
+
+                //updateUI();
 
 
             }
@@ -500,10 +521,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         LatLng JAPAN = new LatLng(36, 139);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(JAPAN, (float) 4.8));
 
+        mDestTextView.setVisibility(View.INVISIBLE);
+
     }
 
     private void liveMap() {
-
+        mDestTextView.setVisibility(View.VISIBLE);
         if (currentMarker != null) {
             currentMarker.remove();
         }
@@ -532,42 +555,23 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 Toast.makeText(this,"ステータス"+String.valueOf(mStatus),Toast.LENGTH_LONG).show();
                 break;
 
-
             case 1:
-               //memo:目的地がないということはこの段階ではない、ということにしないといけない。
-
+            //memo: 全体図を表示する
 
                 // 設定の取得
                 UiSettings settings = mMap.getUiSettings();
-// コンパスの有効化
-               // settings.setCompassEnabled(true);
-// 現在位置に移動するボタンの有効化
-               // settings.setMyLocationButtonEnabled(true);
-// ズームイン・アウトボタンの有効化
                 settings.setZoomControlsEnabled(true);
-// すべてのジェスチャーの有効化
-               // settings.setAllGesturesEnabled(true);
-// 回転ジェスチャーの有効化
-               // settings.setRotateGesturesEnabled(true);
-// スクロールジェスチャーの有効化
-                //settings.setScrollGesturesEnabled(true);
-// Tlitジェスチャー(立体表示)の有効化
-               // settings.setTiltGesturesEnabled(true);
-// ズームジェスチャー(ピンチイン・アウト)の有効化
-              //  settings.setZoomGesturesEnabled(true);
-
 
                 mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
 
+                //memo: 目的地をセット
                 destlatitude = Double.parseDouble(latitude);
                 destlongitude = Double.parseDouble(longitude);
 
                 latlng = new LatLng(destlatitude, destlongitude);
                 setMarker(destlatitude, destlongitude);
 
-
-                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+                //memo:　現在位置をセット
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
@@ -579,39 +583,106 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                     return;
                 }
                 mMap.setMyLocationEnabled(true);
+                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+                currentMarkerOptions.position(currentlatlng);
+                currentMarkerOptions.title("現在位置");
+                currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+                currentMarker = mMap.addMarker(currentMarkerOptions);
 
-// 設定
+
+               // mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+
+                //memo:　目的地と現在位置に線を引く（Routeでは無いからあんまり意味ない）
                 PolylineOptions options = new PolylineOptions();
                 options.add(currentlatlng); // 東京
                 options.add(latlng); // ロサンゼルス
                 options.color(0xcc00ffff);
                 options.width(10);
-               // options.geodesic(true); // 測地線で表示
-                mMap.addPolyline(options);
+                // options.geodesic(true); // 測地線で表示
+                polylineFinal = mMap.addPolyline(options);
 
 
+                //memo:　目的地と現在位置の距離を取る
                 float[] results = new float[1];
                 Location.distanceBetween(destlatitude, destlongitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
                 Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
 
+                String destance = String.valueOf(results[0]/1000);
 
-                mDestTextView.setText("目的地までの距離：" + ( (Float)(results[0]/1000) ).toString() + "Km");
+                mDestTextView.setText("目的地までの距離：" + destance + "Km");
+
+/*
+                LatLngBounds destmap = new LatLngBounds(
+                     // new LatLng(destlongitude, destlatitude), new LatLng(mCurrentLocation.getLongitude(),mCurrentLocation.getLatitude()));
+                     new LatLng(36, 113), new LatLng(-10, 154));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(destmap.getCenter(), 10));
+                */
+
+
+                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                builder.include(destmarker.getPosition());
+                builder.include(currentMarker.getPosition());
+                LatLngBounds bounds = builder.build();
+                mMap.setPadding( 50,250,50,250); //   left,        top,       right,  bottom
+                CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 120);
+
+                mMap.moveCamera(cu);
+
+                new commingmail().execute(destname,destemail, String.valueOf(mCurrentLocation.getLatitude()),String.valueOf(mCurrentLocation.getLongitude()));
+
+                mStatus=2;
+
+                break;
+
+            case 2:
+                //memo: 程よいズームにする
+                //memo:目的地がないということはこの段階ではない、ということにしないといけない。
+
+                // 設定の取得
+                settings = mMap.getUiSettings();
+                settings.setZoomControlsEnabled(true);
+
+                //memo: 目的地をセット
+                destlatitude = Double.parseDouble(latitude);
+                destlongitude = Double.parseDouble(longitude);
+
+                latlng = new LatLng(destlatitude, destlongitude);
+                setMarker(destlatitude, destlongitude);
+
+                //memo:　現在位置をセット
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                mMap.setMyLocationEnabled(true);
+                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+                currentMarkerOptions.position(currentlatlng);
+                currentMarkerOptions.title("現在位置");
+                currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+                currentMarker = mMap.addMarker(currentMarkerOptions);
+
+                polylineFinal.remove();
+
+
+                //memo:　目的地と現在位置の距離を取る
+                results = new float[1];
+                Location.distanceBetween(destlatitude, destlongitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
+                Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
+
+                destance = String.valueOf(results[0]/1000);
+
+                mDestTextView.setText("目的地までの距離：" + destance + "Km");
 
                 zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
 
 
 
-                break;
-            case 2:
-                mMap.clear();
-
-                defaultMap();
-
-                stopLocationUpdates();
-
-
-
-                mStatus = 0;
                 break;
 
         }
@@ -685,13 +756,33 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
+    //URL
+    //     https://rails5api-wkojiro1.c9users.io/trackings.json?email=test00@test.com&token=1:NzjRgLCTwpd9ED7HoLTz
+/*
+        {
+            "id": 2,
+                "destname": "浅草寺",
+                "destemail": "wkojiro22@gmail.com",
+                "destaddress": "台東区浅草２丁目３−1",
+                "nowlatitude": 35.714765,
+                "nowlongitude": 139.796655,
+                "created_at": "2017-03-31T12:42:49.982Z",
+                "updated_at": "2017-03-31T12:42:49.982Z",
+                "url": "https://rails5api-wkojiro1.c9users.io/trackings/2.json"
+        }
+*/
+
+
+
+
+
 
     private void setMarker(double destlatitude, double destlongitude) {
 
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latlng);
         markerOptions.title(destname);
-        mMap.addMarker(markerOptions);
+        destmarker = mMap.addMarker(markerOptions);
 
         // ズーム
         //zoomMap(destlatitude, destlongitude);
@@ -721,6 +812,93 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, width, height, 0));
 
     }
+
+
+    private class commingmail extends AsyncTask<String, Void, Void>{
+        @Override
+        protected Void doInBackground(String... params) {
+
+            PostMail(params);
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result){
+
+
+
+        }
+    }
+
+    public String PostMail(String[] params){
+        HttpURLConnection con = null;//httpURLConnectionのオブジェクトを初期化している。
+        BufferedReader reader = null;
+        StringBuilder jsonData = new StringBuilder();
+        String urlString = "https://rails5api-wkojiro1.c9users.io/trackings.json?email="+ email +"&token="+ access_token +"";
+
+        InputStream inputStream = null;
+        String result = "";
+
+        final String json =
+                "{" +
+                        "\"destname\":\"" + params[0] + "\"," +
+                        "\"destemail\":\"" + params[1] + "\"," +
+                        "\"destaddress\":\"\"," +
+                        "\"nowlatitude\":\"" + params[2] + "\"," +
+                        "\"nowlongitude\":\"" + params[3] + "\"" +
+                 "}";
+
+        try {
+            URL url = new URL(urlString); //URLを生成
+            con = (HttpURLConnection) url.openConnection(); //HttpURLConnectionを取得する
+            con.setRequestMethod("POST");
+            con.setInstanceFollowRedirects(false); // HTTP リダイレクト (応答コード 3xx の要求) を、この HttpURLConnection インスタンスで自動に従うかどうかを設定します。
+            con.setRequestProperty("Accept-Language", "jp");
+            con.setDoOutput(true); //この URLConnection の doOutput フィールドの値を、指定された値に設定します。→イマイチよく理解できない（URL 接続は、入力または出力、あるいはその両方に対して使用できます。URL 接続を出力用として使用する予定である場合は doOutput フラグを true に設定し、そうでない場合は false に設定します。デフォルトは false です。）
+            con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+
+            // リスエストの送信
+            OutputStream os = con.getOutputStream(); //この接続に書き込みを行う出力ストリームを返します
+            con.connect();
+            // con.getResponseCode();
+
+
+            PrintStream ps = new PrintStream(os); //行の自動フラッシュは行わずに、指定のファイルで新しい出力ストリームを作成します。
+            ps.print(json);// JsonをPOSTする
+            ps.close();
+            final int status = con.getResponseCode();
+            Log.d("結果",String.valueOf(status));
+            if(status == HttpURLConnection.HTTP_OK) {
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));//デフォルトサイズのバッファーでバッファリングされた、文字型入力ストリームを作成します。
+                String line = reader.readLine();
+                while (line != null) {
+                    jsonData.append(line);
+                    line = reader.readLine();
+                }
+                System.out.println(jsonData.toString());
+            }
+            con.disconnect();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (ProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Log.d("メール送信", "Postしてみました");
+        // mProgress.dismiss();
+
+        result = "OK";
+
+
+
+        return result;
+    }
+
 
     //memo: preferencceの書き換えを検知するListener
     @Override
@@ -756,7 +934,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 latlng = new LatLng(destlatitude, destlongitude);
                 Log.d("debug", "onSharedPreferenceChangedListner_setMarkerが呼ばれる");
                 // 標準のマーカー
-                setMarker(destlatitude, destlongitude);
+                //setMarker(destlatitude, destlongitude);
             }
         }
     }
@@ -865,14 +1043,20 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }*/
         switch (mStatus){
             case 0:
+                mStopUpdatesButton.setVisibility(View.GONE);
+                mStartUpdatesButton.setVisibility(View.VISIBLE);
                 mStartUpdatesButton.setText("現在位置を取得");
                 break;
             case 1:
                 mStartUpdatesButton.setText("出発します！");
                 break;
             case 2:
-                mStartUpdatesButton.setText("停止");
+                mStopUpdatesButton.setText("停止");
+                mStopUpdatesButton.setVisibility(View.VISIBLE);
+                mStartUpdatesButton.setVisibility(View.GONE);
                 break;
+
+
         }
     }
 
@@ -1015,7 +1199,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         currentMarker = mMap.addMarker(currentMarkerOptions);
       */
        updateLocationUI();
-       Toast.makeText(this, "現在地の変更を感知しました", Toast.LENGTH_LONG).show();
+       Toast.makeText(this, "現在地の変更を感知しました"+ mStatus , Toast.LENGTH_LONG).show();
 
 
     }
