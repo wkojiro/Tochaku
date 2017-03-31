@@ -1,6 +1,7 @@
 package jp.techacademy.wakabayashi.kojiro.tochaku;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
@@ -59,6 +60,7 @@ import android.widget.Toast;
 
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -66,8 +68,22 @@ import java.util.Date;
 
 
 /*
+
+
 https://akira-watson.com/android/google-map-zoom-addmarker.html
 https://github.com/googlesamples/android-play-location/tree/master/LocationUpdates
+
+View系の参考に
+http://dev.classmethod.jp/smartphone/android/android-tips-25-google-maps-android-api-v2/#RetainMap
+http://qiita.com/daisy1754/items/aa9ad75d1a84b745469b
+http://qiita.com/nbkn/items/41b3dd5a86be6e2b57bf
+http://qiita.com/droibit/items/3a4706ec01cb34672d12
+
+2拠点系
+http://qiita.com/a_nishimura/items/6c2642343c0af832acd4
+https://akira-watson.com/android/trace-google-map.html
+http://foonyan.sakura.ne.jp/wisteriahill/gmap_androidapiv2II_memo5/index.html
+http://seesaawiki.jp/w/moonlight_aska/d/2%C3%CF%C5%C0%B4%D6%A4%CE%BA%C7%C3%BB%B5%F7%CE%A5%A4%F2%B5%E1%A4%E1%A4%EB
  */
 
 
@@ -109,13 +125,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     boolean isStart = false;
 
 
-    //memo: 現在位置を求めるための変数群
+    //memo: ボタンの状態管理(
 
+    Integer mStatus = 0;
+    //0:現在位置を取得します（現在位置を取得＆目的地があればセットされた名前を表示）　　
+    //1:出発します（地図や距離を表示して計測スタート）
+    //2:停止します（地図をDefaultに切り替えて、
+    //3:停止中（０へ）
+
+
+    //memo: 現在位置を求めるための変数群
     protected static final String TAG = "MainActivity";
-    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+    protected static final int REQUEST_CHECK_SETTINGS = 123; //適当なリクエストコード
     public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
     public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
+    // Bundle にStoreしているやつを読み込む時のために使うらしい　Keys for storing activity state in the Bundle.(未実装）
     protected final static String KEY_REQUESTING_LOCATION_UPDATES = "requesting-location-updates";
     protected final static String KEY_LOCATION = "location";
     protected final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
@@ -128,10 +153,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     // UI Widgets.
     protected Button mStartUpdatesButton;
     protected Button mStopUpdatesButton;
+
+    /*
     protected TextView mLastUpdateTimeTextView;
     protected TextView mLatitudeTextView;
     protected TextView mLongitudeTextView;
     protected TextView mLocationInadequateWarning;
+    */
+    protected TextView mDestTextView;
 
     // Labels.
     protected String mLatitudeLabel;
@@ -140,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     protected LatLng currentlatlng;
 
+    //memo: Tracks the status of the location updates request. Value changes when the user presses the Start Updates and Stop Updates buttons.
     protected Boolean mRequestingLocationUpdates;
     protected String mLastUpdateTime;
 
@@ -153,24 +183,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Log.d("Debug", "onCreate()");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-
-        ActionBar bar = this.getSupportActionBar();
-
-// タイトルを設定
         toolbar.setTitle("到着予報");
         toolbar.setTitleTextColor(Color.WHITE);
-
-// ナビゲーションアイコンの設定、クリック処理
-
+        // ナビゲーションアイコンの設定、クリック処理
+        /*
         toolbar.findViewById(R.id.toolbar).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d("タグ", "Clicked");
-
-
             }
         });
-
+        */
+        setSupportActionBar(toolbar);
 
         //memo: 位置情報取得のために必要GoogleApiClient.ConnectionCallbacks　GoogleApiClient.OnConnectionFailedListener
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -179,23 +203,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        //memo: Permission 必要なし　map の表示　現状は超デフォルト本来はここで日本の地図にしたい
+        //memo: Permission 必要なし　map の表示　
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        //memo: Toolbar
-
-        setSupportActionBar(toolbar);
 
         //memo: UI
         mStartUpdatesButton = (Button) findViewById(R.id.button_start);
         mStopUpdatesButton = (Button) findViewById(R.id.button_stop);
+        /*
         mLatitudeTextView = (TextView) findViewById(R.id.latitude_text);
         mLongitudeTextView = (TextView) findViewById(R.id.longitude_text);
         mLastUpdateTimeTextView = (TextView) findViewById(R.id.last_update_time_text);
         mLocationInadequateWarning = (TextView) findViewById(R.id.location_inadequate_warning);
+        */
+        mDestTextView = (TextView) findViewById(R.id.dest_text);
 
+        /*
         mLatitudeTextView.setText("緯度");
         mLongitudeTextView.setText("経度");
         mLastUpdateTimeTextView.setText("最終取得時刻");
@@ -204,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mLatitudeLabel = getResources().getString(R.string.latitude_label);
         mLongitudeLabel = getResources().getString(R.string.longitude_label);
         mLastUpdateTimeLabel = getResources().getString(R.string.last_update_time_label);
+        */
 
         //memo: true
         mRequestingLocationUpdates = false;
@@ -225,12 +251,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         latitude = sp.getString(Const.DestLatitudeKEY, "");
         longitude = sp.getString(Const.DestLongitudeKEY, "");
 
-
         //memo: 開発用。ログインしているかどうかを判別しやすくするため。後で消す
         mUsername = (TextView) findViewById(R.id.username);
         mUsername.setText(String.valueOf(username));
 
         //memo: Buttonを実装
+        mStartUpdatesButton.setText("現在位置を取得");
         mStartUpdatesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -252,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
             }
         });
+        mStopUpdatesButton.setVisibility(View.GONE);
         mStopUpdatesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -266,6 +293,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         });
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setVisibility(View.GONE);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -291,24 +319,36 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Log.d("Debug", "CheckPermission");
 
-            // isStart = true;
+
 
             //memo: Locationをリクエストするためのインターバルなどをセット
             createLocationRequest();
             buildLocationSettingsRequest();
 
             //memo: ここで計測Startされる　こいつ→startLocationUpdates();
+            /*requests start of location updates. Does nothing if
+            * updates have already been requested.
+            */
             if (!mRequestingLocationUpdates) {
                 Log.d("debug", String.valueOf(mRequestingLocationUpdates));
-                //memo:trueは計測中を意味する。
+                //memo:trueはボタンが押された状態
                 mRequestingLocationUpdates = true;
                 setButtonsEnabledState();
                 startLocationUpdates();
-                //liveMap();
-
-
             }
 
+
+            switch (mStatus){
+                case 0:
+                    break;
+                case 1:
+
+                    break;
+                case 2:
+
+                    break;
+
+            }
         }
         // 拒否していた場合
         else {
@@ -360,14 +400,32 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     //memo: 一定時間ごとに現在位置を取得する方法
+    /**
+     * Sets up the location request. Android has two location request settings:
+     * {@code ACCESS_COARSE_LOCATION} and {@code ACCESS_FINE_LOCATION}. These settings control
+     * the accuracy of the current location. This sample uses ACCESS_FINE_LOCATION, as defined in
+     * the AndroidManifest.xml.
+     * <p/>
+     * When the ACCESS_FINE_LOCATION setting is specified, combined with a fast update
+     * interval (5 seconds), the Fused Location Provider API returns location updates that are
+     * accurate to within a few feet.
+     * <p/>
+     * These settings are appropriate for mapping applications that show real-time location
+     * updates.
+     */
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(20000);//位置更新を受け取る間隔(msec)　3秒おき
-        mLocationRequest.setFastestInterval(10000);//速くて１秒おき
+        mLocationRequest.setInterval(20000);//位置更新を受け取る間隔(msec)　２０秒おき
+        mLocationRequest.setFastestInterval(10000);//速くて10 秒おき
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);//正確さ優先
     }
 
-    //memo: 続一定時間ごとに現在位置を取得する方法
+    //memo: 位置情報取得のデバイス側の設定を確認するリクエスト？
+    /**
+     * Uses a {@link com.google.android.gms.location.LocationSettingsRequest.Builder} to build
+     * a {@link com.google.android.gms.location.LocationSettingsRequest} that is used for checking
+     * if a device has the needed location settings.
+     */
     protected void buildLocationSettingsRequest() {
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
         builder.setAlwaysShow(true); //added 20170330 http://qiita.com/nbkn/items/41b3dd5a86be6e2b57bf
@@ -450,7 +508,118 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             currentMarker.remove();
         }
 
+        switch (mStatus){
+            case 0:
+             //memo: 現在位置を取得する　目的地があればそれをTextViewに表示する
+                if(destname != null){
+                    mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
+                }
+                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                mMap.setMyLocationEnabled(true);
 
+                mStatus = 1;
+                Toast.makeText(this,"ステータス"+String.valueOf(mStatus),Toast.LENGTH_LONG).show();
+                break;
+
+
+            case 1:
+               //memo:目的地がないということはこの段階ではない、ということにしないといけない。
+
+
+                // 設定の取得
+                UiSettings settings = mMap.getUiSettings();
+// コンパスの有効化
+               // settings.setCompassEnabled(true);
+// 現在位置に移動するボタンの有効化
+               // settings.setMyLocationButtonEnabled(true);
+// ズームイン・アウトボタンの有効化
+                settings.setZoomControlsEnabled(true);
+// すべてのジェスチャーの有効化
+               // settings.setAllGesturesEnabled(true);
+// 回転ジェスチャーの有効化
+               // settings.setRotateGesturesEnabled(true);
+// スクロールジェスチャーの有効化
+                //settings.setScrollGesturesEnabled(true);
+// Tlitジェスチャー(立体表示)の有効化
+               // settings.setTiltGesturesEnabled(true);
+// ズームジェスチャー(ピンチイン・アウト)の有効化
+              //  settings.setZoomGesturesEnabled(true);
+
+
+                mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
+
+                destlatitude = Double.parseDouble(latitude);
+                destlongitude = Double.parseDouble(longitude);
+
+                latlng = new LatLng(destlatitude, destlongitude);
+                setMarker(destlatitude, destlongitude);
+
+
+                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                mMap.setMyLocationEnabled(true);
+
+// 設定
+                PolylineOptions options = new PolylineOptions();
+                options.add(currentlatlng); // 東京
+                options.add(latlng); // ロサンゼルス
+                options.color(0xcc00ffff);
+                options.width(10);
+               // options.geodesic(true); // 測地線で表示
+                mMap.addPolyline(options);
+
+
+                float[] results = new float[1];
+                Location.distanceBetween(destlatitude, destlongitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
+                Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
+
+
+                mDestTextView.setText("目的地までの距離：" + ( (Float)(results[0]/1000) ).toString() + "Km");
+
+                zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+
+
+                break;
+            case 2:
+                mMap.clear();
+
+                defaultMap();
+
+                stopLocationUpdates();
+
+
+
+                mStatus = 0;
+                break;
+
+        }
+        updateUI();
+
+
+  /*
+        mDestTextView.setText("aaaとか");
         //memo: 地図の中心を現在位置にしてみる
         currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         // mMap.animateCamera(CameraUpdateFactory.newLatLng(curr));
@@ -471,11 +640,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
         mMap.setMyLocationEnabled(true);
 
+        if(destname != null){
+
+            mDestTextView.setText("目的地に"+destname+"がセットされました。");
+        }
+
 
         //currentMarker = mMap.addMarker(currentMarkerOptions);
         zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
 
-/*
+
         //memo: Preferenceから取得した情報から目的地を中心とした地図をつくる
         destlatitude = Double.parseDouble(latitude);
         destlongitude = Double.parseDouble(longitude);
@@ -494,7 +668,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         //setIcon(herelatitude, herelongitude);
 
 */
-        /*
+     /*
 
         ボタンを押した時に計測スタートできる状態（つまり、目的地も設定されている状態）であるため、ここでは
 
@@ -589,7 +763,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 //memo: ここからLocationUpdates(定期取得がはじまる。onConnectedしておいて、startLocationUpdatesで要求を出したのちに
 // LocationChangedで居場所が返ってくるという流れ）
+    /**
+     * Requests location updates from the FusedLocationApi.
+     */
     protected void startLocationUpdates() {
+        // 1. ユーザが必要な位置情報設定を満たしているか確認する
         LocationServices.SettingsApi.checkLocationSettings(
                 mGoogleApiClient,
                 mLocationSettingsRequest
@@ -624,6 +802,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         Log.i(TAG, "Location settings are not satisfied. Attempting to upgrade " +
                                 "location settings ");
                         try {
+                            // 2. ユーザに位置情報設定を変更してもらうためのダイアログを表示する
                             // Show the dialog by calling startResolutionForResult(), and check the
                             // result in onActivityResult().
                             status.startResolutionForResult(MainActivity.this, REQUEST_CHECK_SETTINGS);
@@ -632,6 +811,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         }
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                        // 位置情報が取得できず、なおかつその状態からの復帰も難しい時呼ばれるらしい
                         String errorMessage = "Location settings are inadequate, and cannot be " +
                                 "fixed here. Fix in Settings.";
                         Log.e(TAG, errorMessage);
@@ -643,6 +823,30 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
     }
 
+
+    //memo:
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            // Check for the integer request code originally supplied to startResolutionForResult().
+            case REQUEST_CHECK_SETTINGS:
+                // ユーザのダイアログに対する応答をここで確認できる
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        Log.i(TAG, "User agreed to make required location settings changes.");
+                        // Nothing to do. startLocationupdates() gets called in onResume again.
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        Log.i(TAG, "User chose not to make required location settings changes.");
+                        mRequestingLocationUpdates = false;
+                        updateUI();
+                        break;
+                }
+                break;
+        }
+    }
+
+
     private void updateUI() {
         setButtonsEnabledState();
         updateLocationUI();
@@ -650,12 +854,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
     private void setButtonsEnabledState() {
+
+        /*
         if (mRequestingLocationUpdates) {
             mStartUpdatesButton.setEnabled(false);
             mStopUpdatesButton.setEnabled(true);
         } else {
             mStartUpdatesButton.setEnabled(true);
             mStopUpdatesButton.setEnabled(false);
+        }*/
+        switch (mStatus){
+            case 0:
+                mStartUpdatesButton.setText("現在位置を取得");
+                break;
+            case 1:
+                mStartUpdatesButton.setText("出発します！");
+                break;
+            case 2:
+                mStartUpdatesButton.setText("停止");
+                break;
         }
     }
 
@@ -663,13 +880,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
      * Sets the value of the UI fields for the location latitude, longitude and last update time.
      */
     private void updateLocationUI() {
+        /*
         if (mCurrentLocation != null) {
             mLatitudeTextView.setText(String.format("%s: %f", mLatitudeLabel,mCurrentLocation.getLatitude()));
             mLongitudeTextView.setText(String.format("%s: %f", mLongitudeLabel,mCurrentLocation.getLongitude()));
             mLastUpdateTimeTextView.setText(String.format("%s: %s", mLastUpdateTimeLabel,mLastUpdateTime));
-        }
+        }*/
     }
 
+    /**
+     * Removes location updates from the FusedLocationApi.
+     */
     protected void stopLocationUpdates() {
         // It is a good practice to remove location requests when the activity is in a paused or
         // stopped state. Doing so helps battery performance and is especially
@@ -686,9 +907,27 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
     }
 
+
+    //memo: Bundle bundle から connectionHintに変えて見た
     @Override
-    public void onConnected(Bundle bundle) {
+    public void onConnected(Bundle connectionHint) {
         Log.d("API", "Connected??");
+
+
+
+        // If the initial location was never previously requested, we use
+        // FusedLocationApi.getLastLocation() to get it. If it was previously requested, we store
+        // its value in the Bundle and check for it in onCreate(). We
+        // do not request it again unless the user specifically requests location updates by pressing
+        // the Start Updates button.
+        //
+        // Because we cache the value of the initial location in the Bundle, it means that if the
+        // user launches the activity,
+        // moves to a new location, and then changes the device orientation, the original location
+        // is displayed as the activity is re-created.
+
+
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -701,17 +940,29 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 /*
 
                 この段階では、APIがConnectされて、要求が出された段階？
+                よくわからないが、取得できないときがあるってか。そりゃおちる。
 
 
-                 */
-                mMap.setMyLocationEnabled(true);
-                liveMap();
+
+
+                if(mCurrentLocation != null){
+
+                    mMap.setMyLocationEnabled(true);
+                    liveMap();
+                } else {
+
+                    Toast.makeText(this,"Location情報が取得できませんでした。", Toast.LENGTH_LONG).show();
+                    Log.d("debug","mCurrentLocation still (null");
+
+                }
+                */
+
 
                 updateLocationUI();
                 Log.d("Current_location", String.valueOf(mCurrentLocation));
             }
 
-            //これはどう言う状態だ？
+            //memo: startLocationUpdatesとは、計測開始するということ。計測中であれば計測開始ということ？これいる？これはどう言う状態だ？
             if (mRequestingLocationUpdates) {
                 Log.i(TAG, "in onConnected(), starting location updates");
                 Log.d("debug", "onConnected_mRequestingLocationUpdates");
