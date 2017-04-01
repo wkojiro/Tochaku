@@ -196,6 +196,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private Float nowdestance;
     private double referencedestance;
 
+    Double currentlatitude;
+    Double currentlongitude;
+
     //memo: set value(スコープを要注意）
     Integer mailCount;
 
@@ -258,6 +261,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
         //memo: set values
         mailCount = 0;
+        mStatus = 0;
         //memo: true
         mRequestingLocationUpdates = false;
         mLastUpdateTime = "";
@@ -303,21 +307,23 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 } else {
 
                     checkPermission();
+
                     switch (mStatus){
                         case 0:
-
+                            Toast.makeText(MainActivity.this, "Button mStatus"+mStatus, Toast.LENGTH_LONG);
+                            mStatus = 1;
                             break;
                         case 1:
 
-
+                            mStatus = 2;
                             break;
                         case 2:
-
+                            mStatus = 0;
                             break;
 
                     }
 
-
+                    updateUI();
 
 
                 }
@@ -328,15 +334,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void onClick(View v) {
                 Log.d("Debug", "mStopUpdatesButton");
-                mStatus= 0;
                 mMap.clear();
-                updateUI();
+                mStatus = 0;
                 defaultMap();
 
 
                 stopLocationUpdates();
 
-                //updateUI();
+                updateUI();
 
 
             }
@@ -360,6 +365,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 }
             }
         });
+
+        //memo: Locationをリクエストするためのインターバルなどをセット
+        createLocationRequest();
+        buildLocationSettingsRequest();
+
     }
 
     //memo: Permissionの状態で切り分け　ここのシーケンスがいけていない（Permissionがあるか、ログインしているか、目的地が設定されているかを）
@@ -370,9 +380,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
 
 
-            //memo: Locationをリクエストするためのインターバルなどをセット
-            createLocationRequest();
-            buildLocationSettingsRequest();
+
 
             //memo: ここで計測Startされる　こいつ→startLocationUpdates();
             /*requests start of location updates. Does nothing if
@@ -384,27 +392,41 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 mRequestingLocationUpdates = true;
                 setButtonsEnabledState();
                 startLocationUpdates();
-            }
-
-
-            switch (mStatus){
-                case 0:
-                    break;
-                case 1:
-
-                    break;
-                case 2:
-
-                    break;
 
             }
+
         }
         // 拒否していた場合
         else {
             requestLocationPermission();
         }
     }
+    private void setButtonsEnabledState() {
 
+        /*
+        if (mRequestingLocationUpdates) {
+            mStartUpdatesButton.setEnabled(false);
+            mStopUpdatesButton.setEnabled(true);
+        } else {
+            mStartUpdatesButton.setEnabled(true);
+            mStopUpdatesButton.setEnabled(false);
+        }*/
+        switch (mStatus){
+            case 0:
+                mStopUpdatesButton.setVisibility(View.GONE);
+                mStartUpdatesButton.setVisibility(View.VISIBLE);
+                mStartUpdatesButton.setText("現在位置を取得");
+                break;
+            case 1:
+                mStartUpdatesButton.setText("出発します！");
+                break;
+            case 2:
+                mStopUpdatesButton.setText("停止");
+                mStopUpdatesButton.setVisibility(View.VISIBLE);
+                mStartUpdatesButton.setVisibility(View.GONE);
+                break;
+        }
+    }
 
     //memo: 許可を求める
     private void requestLocationPermission() {
@@ -529,10 +551,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
+    //memo: ここはmapFragment.getMapAsync(this);に答えているだけ。ここで地図を生成しておく。
     @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d("onMapReady", "when do you call me?");
-
         mMap = googleMap;
         defaultMap();
 
@@ -551,196 +573,154 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
 
-    private void liveMap() {
+
+    private void firstMap(){
+
         mDestTextView.setVisibility(View.VISIBLE);
         if (currentMarker != null) {
             currentMarker.remove();
         }
+        // 設定の取得
+        UiSettings settings = mMap.getUiSettings();
+        settings.setZoomControlsEnabled(true);
 
-        switch (mStatus){
-            case 0:
-             //memo: 現在位置を取得する　目的地があればそれをTextViewに表示する
-                if(destname != null){
-                    mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
-                }
+        currentlatitude = mCurrentLocation.getLatitude();
+        currentlongitude = mCurrentLocation.getLongitude();
 
-                Double currentlatitude = mCurrentLocation.getLatitude();
-                Double currentlongitude = mCurrentLocation.getLongitude();
+        mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
 
-                currentlatlng = new LatLng(currentlatitude, currentlongitude);
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                mMap.setMyLocationEnabled(true);
+        //memo: 目的地をセット
+        destlatitude = Double.parseDouble(latitude);
+        destlongitude = Double.parseDouble(longitude);
 
-               // mStatus = 1;
-                Toast.makeText(this,"ステータス"+String.valueOf(mStatus),Toast.LENGTH_LONG).show();
-                break;
+        latlng = new LatLng(destlatitude, destlongitude);
+        setMarker(destlatitude, destlongitude);
 
-            case 1:
-            //memo: 全体図を表示する
-
-                // 設定の取得
-                UiSettings settings = mMap.getUiSettings();
-                settings.setZoomControlsEnabled(true);
-
-                currentlatitude = mCurrentLocation.getLatitude();
-                currentlongitude = mCurrentLocation.getLongitude();
-
-                mDestTextView.setText("目的地に［"+destname+"］がセットされました。目的地を変更するには［設定］画面から変更できます。");
-
-                //memo: 目的地をセット
-                destlatitude = Double.parseDouble(latitude);
-                destlongitude = Double.parseDouble(longitude);
-
-                latlng = new LatLng(destlatitude, destlongitude);
-                setMarker(destlatitude, destlongitude);
-
-                //memo:　現在位置をセット
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                mMap.setMyLocationEnabled(true);
-                currentlatlng = new LatLng(currentlatitude, currentlongitude);
-                currentMarkerOptions.position(currentlatlng);
-                currentMarkerOptions.title("現在位置");
-                currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
-                currentMarker = mMap.addMarker(currentMarkerOptions);
-
-
-               // mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
-
-                //memo:　目的地と現在位置に線を引く（Routeでは無いからあんまり意味ない）
-                PolylineOptions options = new PolylineOptions();
-                options.add(currentlatlng); // 東京
-                options.add(latlng); // ロサンゼルス
-                options.color(0xcc00ffff);
-                options.width(10);
-                // options.geodesic(true); // 測地線で表示
-                polylineFinal = mMap.addPolyline(options);
-
-
-                //memo:　目的地と現在位置の距離を取る
-                float[] results = new float[1];
-                Location.distanceBetween(destlatitude, destlongitude, currentlatitude, currentlongitude, results);
-                Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
-
-                originaldestance = results[0]/1000;
-                referencedestance = originaldestance * 0.3;
-
-                mDestTextView.setText("目的地までの距離：" + originaldestance + "Km");
-
-/*
-                LatLngBounds destmap = new LatLngBounds(
-                     // new LatLng(destlongitude, destlatitude), new LatLng(mCurrentLocation.getLongitude(),mCurrentLocation.getLatitude()));
-                     new LatLng(36, 113), new LatLng(-10, 154));
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(destmap.getCenter(), 10));
-                */
-
-                LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                builder.include(destmarker.getPosition());
-                builder.include(currentMarker.getPosition());
-                LatLngBounds bounds = builder.build();
-                mMap.setPadding( 50,250,50,250); //   left,        top,       right,  bottom
-                CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 120);
-
-                mMap.moveCamera(cu);
-                if(mailCount== 0) {
-                new commingmail().execute(destname, destemail, String.valueOf(currentlatitude), String.valueOf(currentlongitude));
-                }
-
-
-               // mStatus=2;
-                break;
-
-            case 2:
-                //memo: 程よいズームにする
-                //memo:目的地がないということはこの段階ではない、ということにしないといけない。
-
-                // 設定の取得
-                settings = mMap.getUiSettings();
-                settings.setZoomControlsEnabled(true);
-
-                currentlatitude = mCurrentLocation.getLatitude();
-                currentlongitude = mCurrentLocation.getLongitude();
-
-                //memo: 目的地をセット
-                destlatitude = Double.parseDouble(latitude);
-                destlongitude = Double.parseDouble(longitude);
-
-                latlng = new LatLng(destlatitude, destlongitude);
-                setMarker(destlatitude, destlongitude);
-
-                //memo:　現在位置をセット
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                mMap.setMyLocationEnabled(true);
-                currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-                currentMarkerOptions.position(currentlatlng);
-                currentMarkerOptions.title("現在位置");
-                currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
-                currentMarker = mMap.addMarker(currentMarkerOptions);
-
-                polylineFinal.remove();
-
-
-                //memo:　目的地と現在位置の距離を取る
-                results = new float[1];
-                Location.distanceBetween(destlatitude, destlongitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
-                Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
-
-                nowdestance = results[0]/1000;
-
-                mDestTextView.setText("目的地までの距離：" + nowdestance + "Km");
-
-                zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-
-
-                Log.d("debug", String.valueOf(referencedestance));
-                Log.d("debug", String.valueOf(nowdestance));
-                Log.d("debug", String.valueOf(nowdestance - referencedestance));
-
-                Toast.makeText(this,"mailcount" + mailCount +"",Toast.LENGTH_LONG).show();
-
-                if(nowdestance - referencedestance <= 0 && mailCount == 0){
-
-                   // Log.d("debug",referencedestance);
-                    new commingmail().execute(destname,destemail, String.valueOf(currentlatitude),String.valueOf(currentlongitude));
-                    Toast.makeText(this,"全行程の７０％を通過しました。",Toast.LENGTH_LONG).show();
-                    mailCount = 1;
-
-                }
-
-                break;
+        //memo:　現在位置をセット
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
         }
-        updateUI();
+        mMap.setMyLocationEnabled(true);
+        currentlatlng = new LatLng(currentlatitude, currentlongitude);
+        currentMarkerOptions.position(currentlatlng);
+        currentMarkerOptions.title("現在位置");
+        currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        currentMarker = mMap.addMarker(currentMarkerOptions);
+
+
+        // mMap.animateCamera(CameraUpdateFactory.newLatLng(currentlatlng));
+
+        //memo:　目的地と現在位置に線を引く（Routeでは無いからあんまり意味ない）
+        PolylineOptions options = new PolylineOptions();
+        options.add(currentlatlng); // 東京
+        options.add(latlng); // ロサンゼルス
+        options.color(0xcc00ffff);
+        options.width(10);
+        // options.geodesic(true); // 測地線で表示
+        polylineFinal = mMap.addPolyline(options);
+
+
+        //memo:　目的地と現在位置の距離を取る
+        float[] results = new float[1];
+        Location.distanceBetween(destlatitude, destlongitude, currentlatitude, currentlongitude, results);
+        Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
+
+        originaldestance = results[0]/1000;
+        referencedestance = originaldestance * 0.3;
+
+        mDestTextView.setText("目的地までの距離：" + originaldestance + "Km");
+
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        builder.include(destmarker.getPosition());
+        builder.include(currentMarker.getPosition());
+        LatLngBounds bounds = builder.build();
+        mMap.setPadding( 50,250,50,250); //   left,        top,       right,  bottom
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 120);
+
+        mMap.moveCamera(cu);
+        if(mailCount== 0) {
+            new commingmail().execute(destname, destemail, String.valueOf(currentlatitude), String.valueOf(currentlongitude));
+        }
+        mailCount = 1;
+
 
     }
 
 
+
+    private void activeMap() {
+        mDestTextView.setVisibility(View.VISIBLE);
+        if (currentMarker != null) {
+            currentMarker.remove();
+        }
+        // 設定の取得
+        UiSettings  settings = mMap.getUiSettings();
+        settings.setZoomControlsEnabled(true);
+
+        currentlatitude = mCurrentLocation.getLatitude();
+        currentlongitude = mCurrentLocation.getLongitude();
+
+        //memo: 目的地をセット
+        destlatitude = Double.parseDouble(latitude);
+        destlongitude = Double.parseDouble(longitude);
+
+        latlng = new LatLng(destlatitude, destlongitude);
+        setMarker(destlatitude, destlongitude);
+
+        //memo:　現在位置をセット
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+        return;
+        }
+        mMap.setMyLocationEnabled(true);
+        currentlatlng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        currentMarkerOptions.position(currentlatlng);
+        currentMarkerOptions.title("現在位置");
+        currentMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        currentMarker = mMap.addMarker(currentMarkerOptions);
+
+        polylineFinal.remove();
+
+
+        //memo:　目的地と現在位置の距離を取る
+        float[] results = new float[1];
+        Location.distanceBetween(destlatitude, destlongitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
+        Toast.makeText(getApplicationContext(), "距離：" + ( (Float)(results[0]/1000) ).toString() + "Km", Toast.LENGTH_LONG).show();
+
+        nowdestance = results[0]/1000;
+
+        mDestTextView.setText("目的地までの距離：" + nowdestance + "Km");
+
+        zoomMap(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+
+
+        Log.d("debug", String.valueOf(referencedestance));
+        Log.d("debug", String.valueOf(nowdestance));
+        Log.d("debug", String.valueOf(nowdestance - referencedestance));
+
+        Toast.makeText(this,"mailcount" + mailCount +"",Toast.LENGTH_LONG).show();
+
+        if(nowdestance - referencedestance <= 0 && mailCount == 1) {
+
+            // Log.d("debug",referencedestance);
+            new commingmail().execute(destname, destemail, String.valueOf(currentlatitude), String.valueOf(currentlongitude));
+            Toast.makeText(this, "全行程の７０％を通過しました。", Toast.LENGTH_LONG).show();
+            mailCount = 2;
+        }
+    }
 
 
     private void setMarker(double destlatitude, double destlongitude) {
@@ -997,34 +977,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
 
-    private void setButtonsEnabledState() {
 
-        /*
-        if (mRequestingLocationUpdates) {
-            mStartUpdatesButton.setEnabled(false);
-            mStopUpdatesButton.setEnabled(true);
-        } else {
-            mStartUpdatesButton.setEnabled(true);
-            mStopUpdatesButton.setEnabled(false);
-        }*/
-        switch (mStatus){
-            case 0:
-                mStopUpdatesButton.setVisibility(View.GONE);
-                mStartUpdatesButton.setVisibility(View.VISIBLE);
-                mStartUpdatesButton.setText("現在位置を取得");
-                break;
-            case 1:
-                mStartUpdatesButton.setText("出発します！");
-                break;
-            case 2:
-                mStopUpdatesButton.setText("停止");
-                mStopUpdatesButton.setVisibility(View.VISIBLE);
-                mStartUpdatesButton.setVisibility(View.GONE);
-                break;
-
-
-        }
-    }
 
     /**
      * Sets the value of the UI fields for the location latitude, longitude and last update time.
@@ -1119,7 +1072,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         mCurrentLocation = location;
         mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
 
-        liveMap();
+
+        switch (mStatus){
+            case 0:
+                defaultMap();
+                break;
+
+            case 1:
+                firstMap();
+                break;
+
+            case 2:
+                activeMap();
+                break;
+
+        }
+
+
+
+      //  liveMap();
 
         /*
         //memo: 地図の中心を現在位置にしてみる
