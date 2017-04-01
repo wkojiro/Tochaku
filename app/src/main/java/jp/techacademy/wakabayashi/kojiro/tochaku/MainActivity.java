@@ -539,13 +539,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         super.onPause();
         // mGoogleApiClient.disconnect();
         if (mGoogleApiClient.isConnected()) {
-            stopLocationUpdates();
+            //stopLocationUpdates(); //Backgroundでもできるように
+            Toast.makeText(getApplicationContext(), "Still alive . you can use it.", Toast.LENGTH_LONG).show();
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        stopLocationUpdates();
         mGoogleApiClient.disconnect();
         // mMap.clear();
 
